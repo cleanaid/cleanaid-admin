@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function DebugPage() {
   const [apiStatus, setApiStatus] = useState<string>("Not tested")
-  const [apiData, setApiData] = useState<any>(null)
+  const [apiData, setApiData] = useState<unknown>(null)
 
   const testAPI = async () => {
     setApiStatus("Testing...")
@@ -47,7 +47,7 @@ export default function DebugPage() {
           <div>
             <strong>Status:</strong> {apiStatus}
           </div>
-          {apiData && (
+          {apiData !== null && (
             <div>
               <strong>Response:</strong>
               <pre className="mt-2 p-4 bg-gray-100 rounded text-sm overflow-auto">
