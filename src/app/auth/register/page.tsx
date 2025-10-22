@@ -1,82 +1,81 @@
 "use client"
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { useState, useEffect } from "react"
+import { getSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Eye, EyeOff, Mail, Lock, User, Globe } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, CheckCircle } from "lucide-react"
+import { signupAdmin } from "@/api/auth"
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  })
+  const [fullName, setFullName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+  const [success, setSuccess] = useState("")
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const router = useRouter()
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const session = await getSession()
+      if (session?.user) {
+        router.push("/dashboard")
+      } else {
+        setIsCheckingAuth(false)
+      }
+    }
+    checkAuth()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
+    setSuccess("")
 
     // Validation
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       setError("Passwords do not match")
       setIsLoading(false)
       return
     }
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long")
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long")
       setIsLoading(false)
       return
     }
 
     try {
-      // TODO: Replace with your actual API call
-      // This is a mock implementation
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+      const result = await signupAdmin({
+        fullName,
+        emailAddress: email,
+        phoneNumber,
+        password
       })
 
-      if (response.ok) {
-        setSuccess(true)
-        // Auto sign in after successful registration
+      if (result) {
+        setSuccess("Account created successfully! Redirecting to login...")
+        
+        // Redirect to login page after successful signup
         setTimeout(() => {
-          signIn("credentials", {
-            email: formData.email,
-            password: formData.password,
-            callbackUrl: "/dashboard",
-          })
+          router.push("/auth/login")
         }, 2000)
       } else {
-        const data = await response.json()
-        setError(data.message || "Registration failed")
+        setError("Failed to create account. Please try again.")
       }
     } catch {
       setError("An error occurred. Please try again.")
@@ -85,35 +84,20 @@ export default function RegisterPage() {
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true)
-    try {
-      // Temporarily disabled - Google OAuth not configured
-      setError("Google sign-in is temporarily disabled. Please use email/password.")
-    } catch {
-      setError("Google sign-in failed. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (success) {
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10 p-4">
-        <Card className="w-full max-w-md shadow-lg border-0 bg-background/80 backdrop-blur-sm">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Mail className="h-8 w-8 text-primary" />
+        <div className="w-full max-w-md">
+          <Card className="shadow-xl border border-border bg-background/95 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Checking authentication...</p>
               </div>
-              <h2 className="text-2xl font-bold">Registration Successful!</h2>
-              <p className="text-muted-foreground">
-                Your account has been created successfully. You will be redirected to the dashboard shortly.
-              </p>
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -127,32 +111,39 @@ export default function RegisterPage() {
           <p className="text-muted-foreground">Create your admin account</p>
         </div>
 
-        <Card className="shadow-lg border-0 bg-background/80 backdrop-blur-sm">
+        <Card className="shadow-xl border border-border bg-background/95 backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Create Account</CardTitle>
             <CardDescription className="text-center">
-              Fill in your details to create an admin account
+              Sign up for admin access to the dashboard
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">{success}</AlertDescription>
               </Alert>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="name"
-                    name="name"
+                    id="fullName"
                     type="text"
                     placeholder="John Doe"
-                    value={formData.name}
-                    onChange={handleInputChange}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -165,11 +156,26 @@ export default function RegisterPage() {
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
-                    name="email"
                     type="email"
-                    placeholder="admin@cleanaid.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
+                    placeholder="admin@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    placeholder="+2348100000000"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -182,11 +188,10 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
-                    name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
-                    value={formData.password}
-                    onChange={handleInputChange}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
                   />
@@ -212,11 +217,10 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
-                    name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
                   />
@@ -251,20 +255,10 @@ export default function RegisterPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
+                  Already have an account?
                 </span>
               </div>
             </div>
-
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-            >
-              <Globe className="mr-2 h-4 w-4" />
-              Google
-            </Button>
 
             <div className="text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>

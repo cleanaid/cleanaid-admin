@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useState, useMemo, useCallback } from "react"
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -14,7 +12,7 @@ import {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Download, Search } from "lucide-react"
+import { ArrowUpDown, ChevronDown, MoreHorizontal, Download, Search, AlertCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,72 +42,11 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, UserFilters } from "@/types/user"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { User } from "@/types/user"
 import { formatDate, formatCurrency } from "@/lib/utils"
+import { useUsers, useToggleUserStatus, useDeleteUser, type UserFilters as ApiUserFilters } from "@/api/hooks"
 
-// Mock data - will be replaced with real API calls
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    status: "active",
-    role: "user",
-    createdAt: "2024-01-15T10:30:00Z",
-    lastLogin: "2024-01-20T14:22:00Z",
-    totalOrders: 12,
-    totalSpent: 450.00,
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    phone: "+1 (555) 987-6543",
-    status: "active",
-    role: "vendor",
-    createdAt: "2024-01-10T09:15:00Z",
-    lastLogin: "2024-01-20T16:45:00Z",
-    totalOrders: 0,
-    totalSpent: 0,
-  },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    email: "mike.johnson@example.com",
-    phone: "+1 (555) 456-7890",
-    status: "inactive",
-    role: "user",
-    createdAt: "2024-01-05T11:20:00Z",
-    lastLogin: "2024-01-18T08:30:00Z",
-    totalOrders: 5,
-    totalSpent: 180.00,
-  },
-  {
-    id: "4",
-    name: "Sarah Wilson",
-    email: "sarah.wilson@example.com",
-    phone: "+1 (555) 321-0987",
-    status: "suspended",
-    role: "user",
-    createdAt: "2024-01-12T13:45:00Z",
-    lastLogin: "2024-01-19T12:15:00Z",
-    totalOrders: 8,
-    totalSpent: 320.00,
-  },
-  {
-    id: "5",
-    name: "David Brown",
-    email: "david.brown@example.com",
-    phone: "+1 (555) 654-3210",
-    status: "active",
-    role: "vendor",
-    createdAt: "2024-01-08T15:30:00Z",
-    lastLogin: "2024-01-20T10:20:00Z",
-    totalOrders: 0,
-    totalSpent: 0,
-  },
-]
 
 const getStatusBadge = (status: User['status']) => {
   switch (status) {
@@ -128,6 +65,10 @@ const getRoleBadge = (role: User['role']) => {
   switch (role) {
     case 'admin':
       return <Badge variant="default">Admin</Badge>
+    case 'service_provider':
+      return <Badge variant="outline">Service Provider</Badge>
+    case 'customer':
+      return <Badge variant="secondary">Customer</Badge>
     case 'vendor':
       return <Badge variant="outline">Vendor</Badge>
     case 'user':
@@ -142,22 +83,75 @@ export default function UsersPage() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
-  const [filters] = useState<UserFilters>({})
-
-  // Mock API call - will be replaced with real useQuery
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users', filters],
-    queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      return mockUsers
-    },
+  const [filters] = useState<ApiUserFilters>({
+    page: 1,
+    limit: 50,
   })
 
-  const columns: ColumnDef<User>[] = [
+  // Real API call using React Query hooks
+  const { 
+    data: usersResponse, 
+    isLoading, 
+    error,
+    refetch 
+  } = useUsers(filters)
+
+  // Extract users from API response and transform to match UI expectations - memoized to prevent re-renders
+  const { users, pagination } = useMemo(() => {
+    const rawUsers = usersResponse?.data || []
+    const pagination = usersResponse?.pagination
+    
+    const transformedUsers = rawUsers.map((user: User) => ({
+      ...user,
+      id: user.id || user.phoneNumber, // Use phoneNumber as ID if no ID
+      name: user.fullName || user.name || 'Unknown',
+      email: user.emailAddress || user.email || '',
+      phone: user.phoneNumber || user.phone || '',
+      status: user.isVerified ? 'active' : 'inactive', // Map isVerified to status
+      totalOrders: user.transaction || user.totalOrders || 0,
+      totalSpent: user.transaction || user.totalSpent || 0,
+    }))
+    
+    return { users: transformedUsers, pagination }
+  }, [usersResponse])
+
+  // Mutations for user actions
+  const toggleStatusMutation = useToggleUserStatus({
+    onSuccess: () => {
+      refetch()
+    },
+    onError: (error) => {
+      console.error('Failed to toggle user status:', error)
+    }
+  })
+
+  const deleteUserMutation = useDeleteUser({
+    onSuccess: () => {
+      refetch()
+    },
+    onError: (error) => {
+      console.error('Failed to delete user:', error)
+    }
+  })
+
+  const handleToggleStatus = useCallback((userId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'suspended' : 'active'
+    toggleStatusMutation.mutate({ id: userId, status: newStatus as 'active' | 'suspended' })
+  }, [toggleStatusMutation])
+
+  const handleDeleteUser = useCallback((userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      deleteUserMutation.mutate(userId)
+    }
+  }, [deleteUserMutation])
+
+  // Handlers will be defined after table creation
+
+  const columns = useMemo(() => [
     {
       accessorKey: "name",
-      header: ({ column }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      header: ({ column }: { column: any }) => {
         return (
           <Button
             variant="ghost"
@@ -168,7 +162,8 @@ export default function UsersPage() {
           </Button>
         )
       },
-      cell: ({ row }) => (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => (
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
             <span className="text-sm font-medium text-primary">
@@ -185,21 +180,25 @@ export default function UsersPage() {
     {
       accessorKey: "phone",
       header: "Phone",
-      cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => <div>{row.getValue("phone")}</div>,
     },
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => getStatusBadge(row.getValue("status")),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => getStatusBadge(row.getValue("status")),
     },
     {
       accessorKey: "role",
       header: "Role",
-      cell: ({ row }) => getRoleBadge(row.getValue("role")),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => getRoleBadge(row.getValue("role")),
     },
     {
       accessorKey: "totalOrders",
-      header: ({ column }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      header: ({ column }: { column: any }) => {
         return (
           <Button
             variant="ghost"
@@ -210,11 +209,13 @@ export default function UsersPage() {
           </Button>
         )
       },
-      cell: ({ row }) => <div>{row.getValue("totalOrders")}</div>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => <div>{row.getValue("totalOrders")}</div>,
     },
     {
       accessorKey: "totalSpent",
-      header: ({ column }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      header: ({ column }: { column: any }) => {
         return (
           <Button
             variant="ghost"
@@ -225,11 +226,13 @@ export default function UsersPage() {
           </Button>
         )
       },
-      cell: ({ row }) => <div>{formatCurrency(row.getValue("totalSpent"))}</div>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => <div>{formatCurrency(row.getValue("totalSpent"))}</div>,
     },
     {
       accessorKey: "lastLogin",
-      header: ({ column }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      header: ({ column }: { column: any }) => {
         return (
           <Button
             variant="ghost"
@@ -240,12 +243,14 @@ export default function UsersPage() {
           </Button>
         )
       },
-      cell: ({ row }) => <div>{formatDate(row.getValue("lastLogin"))}</div>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => <div>{formatDate(row.getValue("lastLogin"))}</div>,
     },
     {
       id: "actions",
       enableHiding: false,
-      cell: ({ row }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cell: ({ row }: { row: any }) => {
         const user = row.original
 
         return (
@@ -259,7 +264,7 @@ export default function UsersPage() {
             <DropdownMenuContent align="end" className="bg-background">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(user.id)}
+                onClick={() => navigator.clipboard.writeText(user.id || user.phoneNumber || '')}
               >
                 Copy user ID
               </DropdownMenuItem>
@@ -268,23 +273,35 @@ export default function UsersPage() {
               <DropdownMenuItem>Edit user</DropdownMenuItem>
               <DropdownMenuSeparator />
               {user.status === 'active' ? (
-                <DropdownMenuItem className="text-yellow-600">
-                  Suspend user
+                <DropdownMenuItem 
+                  className="text-yellow-600"
+                  onClick={() => handleToggleStatus(user.id || user.phoneNumber || '', user.status || 'inactive')}
+                  disabled={toggleStatusMutation.isPending}
+                >
+                  {toggleStatusMutation.isPending ? 'Updating...' : 'Suspend user'}
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem className="text-green-600">
-                  Activate user
+                <DropdownMenuItem 
+                  className="text-green-600"
+                  onClick={() => handleToggleStatus(user.id || user.phoneNumber || '', user.status || 'inactive')}
+                  disabled={toggleStatusMutation.isPending}
+                >
+                  {toggleStatusMutation.isPending ? 'Updating...' : 'Activate user'}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="text-red-600">
-                Delete user
+              <DropdownMenuItem 
+                className="text-red-600"
+                onClick={() => handleDeleteUser(user.id || user.phoneNumber || '')}
+                disabled={deleteUserMutation.isPending}
+              >
+                {deleteUserMutation.isPending ? 'Deleting...' : 'Delete user'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )
       },
     },
-  ]
+  ], [toggleStatusMutation.isPending, deleteUserMutation.isPending, handleDeleteUser, handleToggleStatus])
 
   const table = useReactTable({
     data: users,
@@ -305,10 +322,15 @@ export default function UsersPage() {
     },
   })
 
+  // Debounced search handler to prevent excessive re-renders
+  const handleSearchChange = useCallback((value: string) => {
+    table.getColumn("name")?.setFilterValue(value)
+  }, [table])
+
   const handleExportCSV = () => {
     const csvContent = [
       ['Name', 'Email', 'Phone', 'Status', 'Role', 'Orders', 'Total Spent', 'Last Login'],
-      ...users.map(user => [
+      ...users.map((user) => [
         user.name,
         user.email,
         user.phone,
@@ -348,6 +370,33 @@ export default function UsersPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <p className="text-muted-foreground">
+            Manage and monitor all users on the platform.
+          </p>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load users. Please check your connection and try again.
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2"
+              onClick={() => refetch()}
+            >
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -373,9 +422,7 @@ export default function UsersPage() {
                 <Input
                   placeholder="Search users..."
                   value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-                  onChange={(event) =>
-                    table.getColumn("name")?.setFilterValue(event.target.value)
-                  }
+                  onChange={(event) => handleSearchChange(event.target.value)}
                   className="pl-8"
                 />
               </div>
@@ -407,9 +454,11 @@ export default function UsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="service_provider">Service Provider</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="user">User</SelectItem>
                 <SelectItem value="vendor">Vendor</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={handleExportCSV} variant="outline">
@@ -425,9 +474,14 @@ export default function UsersPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Users ({users.length})</CardTitle>
+              <CardTitle>Users ({pagination?.total || users.length})</CardTitle>
               <CardDescription>
                 A list of all users in the system
+                {pagination && (
+                  <span className="ml-2 text-xs">
+                    (Page {pagination.page} of {pagination.totalPages})
+                  </span>
+                )}
               </CardDescription>
             </div>
             <DropdownMenu>

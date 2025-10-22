@@ -96,6 +96,15 @@
   .text-card-foreground {
     color: hsl(var(--card-foreground)) !important;
   }
+  .bg-destructive {
+    background-color: hsl(var(--destructive)) !important;
+  }
+  .text-destructive {
+    color: hsl(var(--destructive)) !important;
+  }
+  .border-destructive {
+    border-color: hsl(var(--destructive)) !important;
+  }
   .border-primary {
     border-color: hsl(var(--primary)) !important;
   }
