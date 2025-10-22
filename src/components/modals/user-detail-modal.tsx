@@ -64,11 +64,11 @@ export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps)
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
               <span className="text-2xl font-bold text-primary">
-                {currentUser.name.charAt(0)}
+                {currentUser.name?.charAt(0) || 'U'}
               </span>
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-semibold">{currentUser.name}</h3>
+              <h3 className="text-xl font-semibold">{currentUser.name || 'Unknown User'}</h3>
               <p className="text-muted-foreground">{currentUser.email}</p>
               <div className="flex items-center space-x-2 mt-2">
                 {currentUser.status === 'active' ? (
@@ -149,7 +149,7 @@ export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps)
                   ) : (
                     <div className="flex items-center space-x-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{currentUser.phone}</span>
+                      <span>{currentUser.phone || 'Not provided'}</span>
                     </div>
                   )}
                 </div>
@@ -171,14 +171,14 @@ export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps)
                   <Label>Member Since</Label>
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(currentUser.createdAt)}</span>
+                    <span>{currentUser?.createdAt ? formatDate(currentUser.createdAt) : 'Not available'}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Last Login</Label>
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(currentUser.lastLogin)}</span>
+                    <span>{currentUser?.lastLogin ? formatDate(currentUser.lastLogin) : 'Never'}</span>
                   </div>
                 </div>
               </div>
@@ -199,14 +199,14 @@ export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps)
                   <Label>Total Orders</Label>
                   <div className="flex items-center space-x-2">
                     <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-lg font-semibold">{currentUser.totalOrders}</span>
+                    <span className="text-lg font-semibold">{currentUser?.totalOrders || 0}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Total Spent</Label>
                   <div className="flex items-center space-x-2">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-lg font-semibold">{formatCurrency(currentUser.totalSpent)}</span>
+                    <span className="text-lg font-semibold">{formatCurrency(currentUser?.totalSpent || 0)}</span>
                   </div>
                 </div>
               </div>

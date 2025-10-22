@@ -1,14 +1,19 @@
 export interface User {
-  id: string
-  name: string
-  email: string
-  phone: string
-  status: 'active' | 'inactive' | 'suspended'
-  role: 'user' | 'vendor' | 'admin'
-  createdAt: string
+  id?: string
+  fullName: string
+  name?: string // For backward compatibility
+  emailAddress?: string | null
+  email?: string // For backward compatibility
+  phoneNumber: string
+  phone?: string // For backward compatibility
+  status?: 'active' | 'inactive' | 'suspended'
+  isVerified?: boolean
+  role: 'admin' | 'service_provider' | 'customer' | 'user' | 'vendor' // Updated to match API
+  createdAt?: string
   lastLogin: string
-  totalOrders: number
-  totalSpent: number
+  transaction: number
+  totalOrders?: number // For backward compatibility
+  totalSpent?: number // For backward compatibility
   avatar?: string
 }
 

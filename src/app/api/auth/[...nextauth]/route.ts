@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 // import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { authenticateAdmin } from "@/api/auth"
 
 const authOptions = {
   providers: [
@@ -19,20 +20,27 @@ const authOptions = {
           return null
         }
 
-        // TODO: Replace with your actual API call
-        // This is a mock implementation
-        const mockAdmin = {
-          id: "1",
-          email: "admin@cleanaid.com",
-          name: "Admin User",
-          role: "admin"
-        }
+        try {
+          const adminUser = await authenticateAdmin({
+            emailAddress: credentials.email,
+            password: credentials.password
+          })
 
-        if (credentials.email === "admin@cleanaid.com" && credentials.password === "admin123") {
-          return mockAdmin
-        }
+          if (adminUser) {
+            return {
+              id: adminUser.id,
+              email: adminUser.email,
+              name: adminUser.name,
+              role: adminUser.role,
+              accessToken: adminUser.accessToken
+            };
+          }
 
-        return null
+          return null
+        } catch (error) {
+          console.error('Authentication error:', error)
+          return null
+        }
       }
     })
   ],
@@ -44,6 +52,7 @@ const authOptions = {
     async jwt({ token, user }: any) {
       if (user) {
         token.role = user.role
+        token.accessToken = user.accessToken
       }
       return token
     },
@@ -52,6 +61,7 @@ const authOptions = {
       if (token) {
         session.user.id = token.sub!
         session.user.role = token.role as string
+        session.accessToken = token.accessToken
       }
       return session
     },

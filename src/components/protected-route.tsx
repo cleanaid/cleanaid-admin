@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -11,21 +11,25 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
     if (status === "loading") return // Still loading
 
+    // If no session, redirect to login
     if (!session) {
       router.push("/auth/login")
       return
     }
 
-    // Check if user has admin role
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((session.user as any)?.role !== "admin") {
-      router.push("/auth/login")
+    // If session exists, check if user has admin role
+    if (session.user && (session.user as { role?: string })?.role === "admin") {
+      setIsAuthorized(true)
       return
     }
+
+    // If session exists but user is not admin, redirect to login
+    router.push("/auth/login")
   }, [session, status, router])
 
   if (status === "loading") {
@@ -39,7 +43,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
-  if (!session) {
+  if (!isAuthorized) {
     return null
   }
 
