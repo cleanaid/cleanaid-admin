@@ -41,12 +41,10 @@ apiClient.interceptors.request.use(
     try {
       const session = await getSession();
       
-      // Type assertion to access accessToken
-      const sessionWithToken = session as unknown as Record<string, unknown>;
+      // Check for accessToken in session
+      const sessionWithToken = session as { accessToken?: string };
       if (sessionWithToken?.accessToken) {
         config.headers.set('Authorization', `Bearer ${sessionWithToken.accessToken}`);
-      } else if (session?.user && 'accessToken' in session.user) {
-        config.headers.set('Authorization', `Bearer ${(session.user as Record<string, unknown>).accessToken}`);
       }
       // Add request timestamp for debugging
       (config as unknown as Record<string, unknown>).metadata = { startTime: new Date() };

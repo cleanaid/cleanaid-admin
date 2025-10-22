@@ -108,8 +108,8 @@ export default function UsersPage() {
       email: user.emailAddress || user.email || '',
       phone: user.phoneNumber || user.phone || '',
       status: user.isVerified ? 'active' : 'inactive', // Map isVerified to status
-      totalOrders: user.transaction || user.totalOrders || 0,
-      totalSpent: user.transaction || user.totalSpent || 0,
+      totalOrders: user.totalOrders || 0,
+      totalSpent: user.totalSpent || 0,
     }))
     
     return { users: transformedUsers, pagination }
@@ -291,8 +291,8 @@ export default function UsersPage() {
               )}
               <DropdownMenuItem 
                 className="text-red-600"
-                onClick={() => handleDeleteUser(user.id || user.phoneNumber || '')}
-                disabled={deleteUserMutation.isPending}
+                onClick={() => user.id && handleDeleteUser(user.id)}
+                disabled={deleteUserMutation.isPending || !user.id}
               >
                 {deleteUserMutation.isPending ? 'Deleting...' : 'Delete user'}
               </DropdownMenuItem>

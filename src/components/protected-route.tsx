@@ -16,21 +16,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     if (status === "loading") return // Still loading
 
-    // Check for valid session first
-    if (session) {
-      // Check if user has admin role
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((session.user as any)?.role === "admin") {
-        setIsAuthorized(true)
-        return
-      }
-    }
-
-    // If no valid session, redirect to login
+    // If no session, redirect to login
     if (!session) {
       router.push("/auth/login")
       return
     }
+
+    // If session exists, check if user has admin role
+    if (session.user && (session.user as { role?: string })?.role === "admin") {
+      setIsAuthorized(true)
+      return
+    }
+
+    // If session exists but user is not admin, redirect to login
+    router.push("/auth/login")
   }, [session, status, router])
 
   if (status === "loading") {
