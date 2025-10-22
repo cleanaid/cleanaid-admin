@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Cleanaid Admin",
-  description: "Admin dashboard for Cleanaid platform",
+  description: "Admin dashboard for Cleanaid platform 1.0",
 }
 
 export default function RootLayout({
