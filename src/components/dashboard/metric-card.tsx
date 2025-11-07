@@ -64,7 +64,7 @@ export function MetricCard({
           <div
             key={index}
             className={cn(
-              "flex items-center justify-between rounded-full px-3 py-1.5 text-xs font-medium",
+              "flex items-center justify-between rounded-full px-5 py-5 text-xs font-medium",
               subMetricColors[subMetric.color || "green"]
             )}
           >
