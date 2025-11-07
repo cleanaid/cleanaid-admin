@@ -111,13 +111,30 @@ export const adminApi = {
     }>> => {
       return api.get('/admin/users/stats');
     },
+
+    // Get user metrics (active, inactive, returning)
+    getMetrics: async (): Promise<ApiResponse<{
+      activeUsers: number;
+      inactiveUsers: number;
+      returningUsers: number;
+    }>> => {
+      return api.get('/admin/users/metrics');
+    },
   },
 
   // Businesses Management
   businesses: {
     // Get paginated list of laundry businesses
     getAll: async (params?: BusinessFilters): Promise<ApiResponse<Business[]>> => {
-      return api.get<Business[]>('/admin/businesses', { params });
+      // Make direct axios call to handle the raw API response
+      const response = await apiClient.get<{ businesses: Business[]; pagination: Record<string, unknown> }>('/admin/businesses', { params });
+      // Transform the response to match expected structure
+      return {
+        data: response.data.businesses,
+        pagination: response.data.pagination,
+        success: true,
+        message: 'Businesses retrieved successfully'
+      };
     },
 
     // Get business by ID
@@ -155,13 +172,53 @@ export const adminApi = {
     }>> => {
       return api.get('/admin/businesses/stats');
     },
+
+    // Get business metrics (active, inactive, returning)
+    getMetrics: async (): Promise<ApiResponse<{
+      activeBusinesses: number;
+      inactiveBusinesses: number;
+      returningBusinesses: number;
+    }>> => {
+      return api.get('/admin/businesses/metrics');
+    },
   },
 
   // Laundry Orders Management
   orders: {
     // Get all laundry orders
     getAll: async (params?: OrderFilters): Promise<ApiResponse<Order[]>> => {
-      return api.get<Order[]>('/admin/laundry-orders', { params });
+      // The backend returns { pagination, orders } structure
+      interface BackendOrderResponse {
+        orderId: string
+        customer?: {
+          name: string
+          phone: string
+          email: string
+          address?: string
+        } | null
+        laundryBusiness?: {
+          name: string
+          email: string
+          phone: string
+          address?: string
+        } | null
+        totalAmount: number
+        discountAmount: number
+        paymentStatus: 'pending' | 'paid' | 'failed'
+        progressMilestone: string
+        isNewOrder: boolean
+        hasExpired: boolean
+        deliveryDate: string | Date
+        createdAt: string | Date
+      }
+      const response = await apiClient.get<{ pagination: Record<string, unknown>; orders: BackendOrderResponse[] }>('/admin/laundry-orders', { params });
+      // Transform to match expected ApiResponse structure
+      return {
+        data: response.data.orders as unknown as Order[],
+        pagination: response.data.pagination,
+        success: true,
+        message: 'Orders retrieved successfully'
+      };
     },
 
     // Get order by ID
@@ -267,6 +324,51 @@ export const adminApi = {
       }>;
     }>> => {
       return api.get('/admin/analytics/user-growth', { params: { period } });
+    },
+
+    // Get platform metrics
+    getMetrics: async (): Promise<ApiResponse<{
+      users: {
+        active: number;
+        inactive: number;
+        returning: number;
+      };
+      businesses: {
+        active: number;
+        inactive: number;
+        returning: number;
+      };
+      laundryOrder: {
+        active: number;
+        successful: number;
+        canceled: number;
+      };
+    }>> => {
+      try {
+        console.log('Fetching metrics from API...');
+        const result = await api.get<{
+          users: {
+            active: number;
+            inactive: number;
+            returning: number;
+          };
+          businesses: {
+            active: number;
+            inactive: number;
+            returning: number;
+          };
+          laundryOrder: {
+            active: number;
+            successful: number;
+            canceled: number;
+          };
+        }>('/admin/metrics');
+        console.log('Metrics API response:', result);
+        return result;
+      } catch (error: unknown) {
+        console.error('Metrics API error:', error);
+        throw error;
+      }
     },
   },
 };

@@ -44,6 +44,7 @@ export const queryKeys = {
   analytics: {
     all: ['analytics'] as const,
     dashboard: () => [...queryKeys.analytics.all, 'dashboard'] as const,
+    metrics: () => [...queryKeys.analytics.all, 'metrics'] as const,
     revenue: (period: string) => [...queryKeys.analytics.all, 'revenue', period] as const,
     userGrowth: (period: string) => [...queryKeys.analytics.all, 'userGrowth', period] as const,
   },
@@ -71,6 +72,16 @@ export const useUserStats = (options?: UseQueryOptions) => {
   return useQuery({
     queryKey: queryKeys.users.stats(),
     queryFn: () => adminApi.users.getStats(),
+    ...options,
+  });
+};
+
+export const useUserMetrics = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.users.stats(), 'metrics'],
+    queryFn: () => adminApi.users.getMetrics(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     ...options,
   });
 };
@@ -149,6 +160,16 @@ export const useBusinessStats = (options?: UseQueryOptions) => {
   return useQuery({
     queryKey: queryKeys.businesses.stats(),
     queryFn: () => adminApi.businesses.getStats(),
+    ...options,
+  });
+};
+
+export const useBusinessMetrics = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.businesses.stats(), 'metrics'],
+    queryFn: () => adminApi.businesses.getMetrics(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     ...options,
   });
 };
@@ -306,6 +327,16 @@ export const useUserGrowthAnalytics = (period: '7d' | '30d' | '90d' | '1y', opti
   return useQuery({
     queryKey: queryKeys.analytics.userGrowth(period),
     queryFn: () => adminApi.analytics.getUserGrowth(period),
+    ...options,
+  });
+};
+
+export const useAdminMetrics = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.analytics.metrics(),
+    queryFn: () => adminApi.analytics.getMetrics(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     ...options,
   });
 };
