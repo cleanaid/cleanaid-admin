@@ -1,7 +1,6 @@
 import { api, apiClient, ApiResponse } from './api-client';
 import { User } from '@/types/user';
 import { Business } from '@/types/business';
-import { Payment } from '@/types/payment';
 import { Order } from '@/types/order';
 import { authenticateAdmin, getAdminProfile, logoutAdmin, signupAdmin } from './auth';
 
@@ -247,7 +246,7 @@ export const adminApi = {
   // Payments Management (Transactions)
   payments: {
     // Get all transactions
-    getAll: async (params?: PaginationParams): Promise<ApiResponse<any>> => {
+    getAll: async (params?: PaginationParams): Promise<ApiResponse<{ transactions: unknown[]; totalTransactions: number; page: number; totalPages: number }>> => {
       return api.get('/admin/transactions', { params });
     },
 
@@ -267,7 +266,7 @@ export const adminApi = {
   // Payouts Management
   payouts: {
     // Get all payouts
-    getAll: async (params?: PaginationParams): Promise<ApiResponse<any>> => {
+    getAll: async (params?: PaginationParams): Promise<ApiResponse<{ payouts: unknown[]; totalWithdrawals: number; page: number; totalPages: number }>> => {
       return api.get('/admin/payouts', { params });
     },
 
@@ -277,7 +276,7 @@ export const adminApi = {
       pending: { count: number; amount: number };
       unsuccessful: { count: number; amount: number };
     }>> => {
-      return api.get('/admin/payouts/stats');
+      return api.get('/admin/payouts/metrics');
     },
   },
 
