@@ -3,4 +3,8 @@ export { OrdersTable, type OrdersTableProps, type Order } from "./orders-table"
 export { UserStatCard, type UserStatCardProps } from "./user-stat-card"
 export { UsersTable, type UsersTableProps, type User as TableUser } from "./users-table"
 export { BusinessesTable, type BusinessesTableProps, type Business as TableBusiness } from "./businesses-table"
+export { LaundryActivitiesTable, type LaundryActivitiesTableProps, type LaundryActivity } from "./laundry-activities-table"
+export { PayoutsTable, type PayoutsTableProps, type Payout } from "./payouts-table"
+export { TransactionsTable, type TransactionsTableProps, type Transaction } from "./transactions-table"
+export { PaymentStatCard, type PaymentStatCardProps } from "./payment-stat-card"
 

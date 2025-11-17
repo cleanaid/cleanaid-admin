@@ -211,7 +211,7 @@ export const adminApi = {
         deliveryDate: string | Date
         createdAt: string | Date
       }
-      const response = await apiClient.get<{ pagination: Record<string, unknown>; orders: BackendOrderResponse[] }>('/admin/laundry-orders', { params });
+      const response = await apiClient.get<{ pagination: Record<string, unknown>; orders: BackendOrderResponse[] }>('/admin/laundry-activities', { params });
       // Transform to match expected ApiResponse structure
       return {
         data: response.data.orders as unknown as Order[],
@@ -223,12 +223,12 @@ export const adminApi = {
 
     // Get order by ID
     getById: async (id: string): Promise<ApiResponse<Order>> => {
-      return api.get<Order>(`/admin/laundry-orders/${id}`);
+      return api.get<Order>(`/admin/laundry-activities/${id}`);
     },
 
     // Update order status
     updateStatus: async (id: string, status: string): Promise<ApiResponse<Order>> => {
-      return api.patch<Order>(`/admin/laundry-orders/${id}/status`, { status });
+      return api.patch<Order>(`/admin/laundry-activities/${id}/status`, { status });
     },
 
     // Get order statistics
@@ -240,37 +240,44 @@ export const adminApi = {
       cancelled: number;
       revenue: number;
     }>> => {
-      return api.get('/admin/laundry-orders/stats');
+      return api.get('/admin/laundry-activities/stats');
     },
   },
 
-  // Payments Management
+  // Payments Management (Transactions)
   payments: {
-    // Get all payments
-    getAll: async (params?: PaginationParams): Promise<ApiResponse<Payment[]>> => {
-      return api.get<Payment[]>('/admin/payments', { params });
+    // Get all transactions
+    getAll: async (params?: PaginationParams): Promise<ApiResponse<any>> => {
+      return api.get('/admin/transactions', { params });
     },
 
-    // Get payment by ID
-    getById: async (id: string): Promise<ApiResponse<Payment>> => {
-      return api.get<Payment>(`/admin/payments/${id}`);
-    },
-
-    // Update payment status
-    updateStatus: async (id: string, status: string): Promise<ApiResponse<Payment>> => {
-      return api.patch<Payment>(`/admin/payments/${id}/status`, { status });
-    },
-
-    // Get payment statistics
+    // Get transaction statistics
     getStats: async (): Promise<ApiResponse<{
-      total: number;
-      successful: number;
-      failed: number;
-      pending: number;
       totalAmount: number;
-      thisMonth: number;
+      businessAmount: number;
+      userAmount: number;
+      profit: number;
+      refunds: number;
+      withdrawals: number;
     }>> => {
-      return api.get('/admin/payments/stats');
+      return api.get('/admin/transactions/stats');
+    },
+  },
+
+  // Payouts Management
+  payouts: {
+    // Get all payouts
+    getAll: async (params?: PaginationParams): Promise<ApiResponse<any>> => {
+      return api.get('/admin/payouts', { params });
+    },
+
+    // Get payout statistics
+    getStats: async (): Promise<ApiResponse<{
+      successful: { count: number; amount: number };
+      pending: { count: number; amount: number };
+      unsuccessful: { count: number; amount: number };
+    }>> => {
+      return api.get('/admin/payouts/stats');
     },
   },
 

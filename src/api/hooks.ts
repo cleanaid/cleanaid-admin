@@ -41,6 +41,12 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.payments.details(), id] as const,
     stats: () => [...queryKeys.payments.all, 'stats'] as const,
   },
+  payouts: {
+    all: ['payouts'] as const,
+    lists: () => [...queryKeys.payouts.all, 'list'] as const,
+    list: (filters: PaginationParams) => [...queryKeys.payouts.lists(), filters] as const,
+    stats: () => [...queryKeys.payouts.all, 'stats'] as const,
+  },
   analytics: {
     all: ['analytics'] as const,
     dashboard: () => [...queryKeys.analytics.all, 'dashboard'] as const,
@@ -337,6 +343,23 @@ export const useAdminMetrics = (options?: UseQueryOptions) => {
     queryFn: () => adminApi.analytics.getMetrics(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    ...options,
+  });
+};
+
+// Payouts Hooks
+export const usePayouts = (filters?: PaginationParams, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.payouts.list(filters || {}),
+    queryFn: () => adminApi.payouts.getAll(filters),
+    ...options,
+  });
+};
+
+export const usePayoutStats = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.payouts.stats(),
+    queryFn: () => adminApi.payouts.getStats(),
     ...options,
   });
 };
