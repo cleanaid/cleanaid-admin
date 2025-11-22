@@ -281,14 +281,6 @@ export const usePayments = (filters?: PaginationParams, options?: UseQueryOption
   });
 };
 
-export const usePayment = (id: string, options?: UseQueryOptions) => {
-  return useQuery({
-    queryKey: queryKeys.payments.detail(id),
-    queryFn: () => adminApi.payments.getById(id),
-    enabled: !!id,
-    ...options,
-  });
-};
 
 export const usePaymentStats = (options?: UseQueryOptions) => {
   return useQuery({
@@ -298,19 +290,20 @@ export const usePaymentStats = (options?: UseQueryOptions) => {
   });
 };
 
-export const useUpdatePaymentStatus = (options?: UseMutationOptions<unknown, Error, { id: string; status: string }>) => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => 
-      adminApi.payments.updateStatus(id, status),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.payments.detail(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
-    },
-    ...options,
-  });
-};
+// Note: updateStatus method not implemented in adminApi.payments
+// If needed, add it to admin.ts first
+// export const useUpdatePaymentStatus = (options?: UseMutationOptions<unknown, Error, { id: string; status: string }>) => {
+//   const queryClient = useQueryClient();
+//   
+//   return useMutation({
+//     mutationFn: ({ id, status }: { id: string; status: string }) => 
+//       adminApi.payments.updateStatus(id, status),
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
+//     },
+//     ...options,
+//   });
+// };
 
 // Analytics Hooks
 export const useOrdersAnalytics = (year?: number, options?: UseQueryOptions) => {

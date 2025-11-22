@@ -29,7 +29,15 @@ interface RevenueChartProps {
   onLocationChange: (location: string) => void
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface TooltipPayloadItem {
+  payload: {
+    revenue?: number
+    profit?: number
+    refunds?: number
+  }
+}
+
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: TooltipPayloadItem['payload'] }> }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -43,8 +51,13 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null
 }
 
-const CustomDot = (props: any) => {
-  const { cx, cy } = props
+interface DotProps {
+  cx?: number
+  cy?: number
+}
+
+const CustomDot = ({ cx, cy }: DotProps) => {
+  if (cx === undefined || cy === undefined) return null
   return (
     <circle
       cx={cx}
@@ -57,18 +70,9 @@ const CustomDot = (props: any) => {
   )
 }
 
-export function RevenueChart({ data, summary, year, location, onYearChange, onLocationChange }: RevenueChartProps) {
+export function RevenueChart({ data, year, location, onYearChange, onLocationChange }: RevenueChartProps) {
   const formatValue = (value: number) => {
     return `${Math.round(value)}%`
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value)
   }
 
   return (

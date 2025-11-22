@@ -5,6 +5,7 @@ import { useOrdersAnalytics, useUsersAnalytics, useRevenueAnalytics } from "@/ap
 import { OrdersChart } from "@/components/analytics/orders-chart"
 import { UsersChart } from "@/components/analytics/users-chart"
 import { RevenueChart } from "@/components/analytics/revenue-chart"
+import type { ApiResponse } from "@/api/api-client"
 
 export default function AnalyticsPage() {
   // Independent state for each chart
@@ -22,15 +23,52 @@ export default function AnalyticsPage() {
   const isLoading = ordersLoading || usersLoading || revenueLoading
 
   // Extract data from API responses
-  const ordersResponse = ordersData?.data || null
-  const usersResponse = usersData?.data || null
-  const revenueResponse = revenueData?.data || null
+  const ordersResponse = (ordersData as ApiResponse<{
+    monthlyData: Array<{
+      month: string
+      value: number
+      count: number
+      completed: number
+      pending: number
+      cancelled: number
+    }>
+    summary: {
+      totalOrders: number
+      completed: number
+      pending: number
+      cancelled: number
+    }
+  }> | undefined)?.data || null
 
-  // Generate year options (current year and previous 2 years)
-  const yearOptions = Array.from({ length: 3 }, (_, i) => {
-    const year = new Date().getFullYear() - i
-    return year
-  })
+  const usersResponse = (usersData as ApiResponse<{
+    monthlyData: Array<{
+      month: string
+      value: number
+      count: number
+      active: number
+      inactive: number
+    }>
+    summary: {
+      totalUsers: number
+      activeUsers: number
+      inactiveUsers: number
+      returnedUsers: number
+    }
+  }> | undefined)?.data || null
+
+  const revenueResponse = (revenueData as ApiResponse<{
+    monthlyData: Array<{
+      month: string
+      value: number
+      revenue: number
+      profit: number
+    }>
+    summary: {
+      revenue: number
+      profit: number
+      refunds: number
+    }
+  }> | undefined)?.data || null
 
   if (isLoading) {
     return (
