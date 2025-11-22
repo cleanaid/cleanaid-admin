@@ -87,11 +87,11 @@ export default function PaymentsPage() {
     const responseData = (transactionsResponse as ApiResponse<TransactionsResponse>).data || transactionsResponse as TransactionsResponse
     
     // Check if responseData has transactions property
-    if (responseData && 'transactions' in responseData) {
+    if (responseData && typeof responseData === 'object' && 'transactions' in responseData && !Array.isArray(responseData)) {
       return {
-        transactions: responseData.transactions || [],
-        totalPages: responseData.totalPages || 0,
-        totalTransactions: responseData.totalTransactions || 0,
+        transactions: (responseData as TransactionsResponse).transactions || [],
+        totalPages: (responseData as TransactionsResponse).totalPages || 0,
+        totalTransactions: (responseData as TransactionsResponse).totalTransactions || 0,
       }
     }
 

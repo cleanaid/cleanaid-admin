@@ -8,7 +8,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Dot,
 } from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -31,7 +30,16 @@ interface OrdersChartProps {
   onYearChange: (year: number) => void
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface TooltipPayloadItem {
+  payload: {
+    count?: number
+    completed?: number
+    pending?: number
+    cancelled?: number
+  }
+}
+
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: TooltipPayloadItem['payload'] }> }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -46,8 +54,13 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null
 }
 
-const CustomDot = (props: any) => {
-  const { cx, cy } = props
+interface DotProps {
+  cx?: number
+  cy?: number
+}
+
+const CustomDot = ({ cx, cy }: DotProps) => {
+  if (cx === undefined || cy === undefined) return null
   return (
     <circle
       cx={cx}
@@ -60,7 +73,7 @@ const CustomDot = (props: any) => {
   )
 }
 
-export function OrdersChart({ data, summary, year, onYearChange }: OrdersChartProps) {
+export function OrdersChart({ data, year, onYearChange }: OrdersChartProps) {
   const formatValue = (value: number) => {
     return `${Math.round(value)}%`
   }

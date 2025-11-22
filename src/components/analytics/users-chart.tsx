@@ -11,7 +11,7 @@ import {
   CartesianGrid,
 } from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface UsersChartProps {
   data: Array<{
@@ -33,7 +33,16 @@ interface UsersChartProps {
   onLocationChange: (location: string) => void
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface TooltipPayloadItem {
+  payload: {
+    count?: number
+    active?: number
+    inactive?: number
+    returned?: number
+  }
+}
+
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: TooltipPayloadItem['payload'] }> }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -48,8 +57,13 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null
 }
 
-const CustomDot = (props: any) => {
-  const { cx, cy } = props
+interface DotProps {
+  cx?: number
+  cy?: number
+}
+
+const CustomDot = ({ cx, cy }: DotProps) => {
+  if (cx === undefined || cy === undefined) return null
   return (
     <circle
       cx={cx}
@@ -62,7 +76,7 @@ const CustomDot = (props: any) => {
   )
 }
 
-export function UsersChart({ data, summary, year, location, onYearChange, onLocationChange }: UsersChartProps) {
+export function UsersChart({ data, year, location, onYearChange, onLocationChange }: UsersChartProps) {
   const [activeTab, setActiveTab] = useState<"business" | "users">("business")
 
   const formatValue = (value: number) => {

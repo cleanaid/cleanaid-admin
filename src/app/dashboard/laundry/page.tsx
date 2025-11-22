@@ -35,36 +35,6 @@ interface BackendOrder {
   pickupDate?: string | Date
 }
 
-/**
- * calculateTrend - Calculates the percentage change and direction between two values
- */
-const calculateTrend = (
-  currentValue: number,
-  previousValue: number
-): { percentage: number; direction: "up" | "down" } => {
-  if (previousValue === 0) {
-    return { percentage: currentValue > 0 ? 100 : 0, direction: currentValue > 0 ? "up" : "down" }
-  }
-  
-  const change = ((currentValue - previousValue) / previousValue) * 100
-  const percentage = Math.abs(change)
-  const direction = change >= 0 ? "up" : "down"
-  
-  return { percentage: Math.round(percentage * 10) / 10, direction }
-}
-
-// Get yesterday's date key for localStorage
-const getYesterdayKey = () => {
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  return `laundry_metrics_${yesterday.toISOString().split('T')[0]}`
-}
-
-// Get today's date key for localStorage
-const getTodayKey = () => {
-  return `laundry_metrics_${new Date().toISOString().split('T')[0]}`
-}
-
 export default function LaundryPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
