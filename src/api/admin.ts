@@ -1,7 +1,6 @@
 import { api, apiClient, ApiResponse } from './api-client';
 import { User } from '@/types/user';
 import { Business } from '@/types/business';
-import { Payment } from '@/types/payment';
 import { Order } from '@/types/order';
 import { authenticateAdmin, getAdminProfile, logoutAdmin, signupAdmin } from './auth';
 
@@ -111,13 +110,30 @@ export const adminApi = {
     }>> => {
       return api.get('/admin/users/stats');
     },
+
+    // Get user metrics (active, inactive, returning)
+    getMetrics: async (): Promise<ApiResponse<{
+      activeUsers: number;
+      inactiveUsers: number;
+      returningUsers: number;
+    }>> => {
+      return api.get('/admin/users/metrics');
+    },
   },
 
   // Businesses Management
   businesses: {
     // Get paginated list of laundry businesses
     getAll: async (params?: BusinessFilters): Promise<ApiResponse<Business[]>> => {
-      return api.get<Business[]>('/admin/businesses', { params });
+      // Make direct axios call to handle the raw API response
+      const response = await apiClient.get<{ businesses: Business[]; pagination: Record<string, unknown> }>('/admin/businesses', { params });
+      // Transform the response to match expected structure
+      return {
+        data: response.data.businesses,
+        pagination: response.data.pagination,
+        success: true,
+        message: 'Businesses retrieved successfully'
+      };
     },
 
     // Get business by ID
@@ -155,23 +171,63 @@ export const adminApi = {
     }>> => {
       return api.get('/admin/businesses/stats');
     },
+
+    // Get business metrics (active, inactive, returning)
+    getMetrics: async (): Promise<ApiResponse<{
+      activeBusinesses: number;
+      inactiveBusinesses: number;
+      returningBusinesses: number;
+    }>> => {
+      return api.get('/admin/businesses/metrics');
+    },
   },
 
   // Laundry Orders Management
   orders: {
     // Get all laundry orders
     getAll: async (params?: OrderFilters): Promise<ApiResponse<Order[]>> => {
-      return api.get<Order[]>('/admin/laundry-orders', { params });
+      // The backend returns { pagination, orders } structure
+      interface BackendOrderResponse {
+        orderId: string
+        customer?: {
+          name: string
+          phone: string
+          email: string
+          address?: string
+        } | null
+        laundryBusiness?: {
+          name: string
+          email: string
+          phone: string
+          address?: string
+        } | null
+        totalAmount: number
+        discountAmount: number
+        paymentStatus: 'pending' | 'paid' | 'failed'
+        progressMilestone: string
+        isNewOrder: boolean
+        hasExpired: boolean
+        deliveryDate: string | Date
+        createdAt: string | Date
+      }
+      const response = await apiClient.get<{ pagination: Record<string, unknown>; orders: BackendOrderResponse[] }>('/admin/laundry-activities', { params });
+      // Transform to match expected ApiResponse structure
+      return {
+        data: response.data.orders as unknown as Order[],
+        pagination: response.data.pagination,
+        success: true,
+        message: 'Orders retrieved successfully'
+      };
     },
 
     // Get order by ID
     getById: async (id: string): Promise<ApiResponse<Order>> => {
-      return api.get<Order>(`/admin/laundry-orders/${id}`);
+      return api.get<Order>(`/admin/laundry-activities/${id}`);
     },
 
     // Update order status
     updateStatus: async (id: string, status: string): Promise<ApiResponse<Order>> => {
-      return api.patch<Order>(`/admin/laundry-orders/${id}/status`, { status });
+      return api.patch<Order>(`/admin/laundry-activities/${id}/status`, { status });
     },
 
     // Get order statistics
@@ -183,42 +239,167 @@ export const adminApi = {
       cancelled: number;
       revenue: number;
     }>> => {
-      return api.get('/admin/laundry-orders/stats');
+      return api.get('/admin/laundry-activities/stats');
     },
   },
 
-  // Payments Management
+  // Payments Management (Transactions)
   payments: {
-    // Get all payments
-    getAll: async (params?: PaginationParams): Promise<ApiResponse<Payment[]>> => {
-      return api.get<Payment[]>('/admin/payments', { params });
+    // Get all transactions
+    getAll: async (params?: PaginationParams): Promise<ApiResponse<{ transactions: unknown[]; totalTransactions: number; page: number; totalPages: number }>> => {
+      return api.get('/admin/transactions', { params });
     },
 
-    // Get payment by ID
-    getById: async (id: string): Promise<ApiResponse<Payment>> => {
-      return api.get<Payment>(`/admin/payments/${id}`);
-    },
-
-    // Update payment status
-    updateStatus: async (id: string, status: string): Promise<ApiResponse<Payment>> => {
-      return api.patch<Payment>(`/admin/payments/${id}/status`, { status });
-    },
-
-    // Get payment statistics
+    // Get transaction statistics
     getStats: async (): Promise<ApiResponse<{
-      total: number;
-      successful: number;
-      failed: number;
-      pending: number;
       totalAmount: number;
-      thisMonth: number;
+      businessAmount: number;
+      userAmount: number;
+      profit: number;
+      refunds: number;
+      withdrawals: number;
     }>> => {
-      return api.get('/admin/payments/stats');
+      return api.get('/admin/transactions/stats');
+    },
+  },
+
+  // Payouts Management
+  payouts: {
+    // Get all payouts
+    getAll: async (params?: PaginationParams): Promise<ApiResponse<{ payouts: unknown[]; totalWithdrawals: number; page: number; totalPages: number }>> => {
+      return api.get('/admin/payouts', { params });
+    },
+
+    // Get payout statistics
+    getStats: async (): Promise<ApiResponse<{
+      successful: { count: number; amount: number };
+      pending: { count: number; amount: number };
+      unsuccessful: { count: number; amount: number };
+    }>> => {
+      return api.get('/admin/payouts/metrics');
     },
   },
 
   // Analytics and Reports
   analytics: {
+    // Get orders analytics
+    getOrders: async (year?: number): Promise<ApiResponse<{
+      monthlyData: Array<{
+        month: string;
+        value: number;
+        count: number;
+        completed: number;
+        pending: number;
+        cancelled: number;
+      }>;
+      summary: {
+        totalOrders: number;
+        completed: number;
+        pending: number;
+        cancelled: number;
+      };
+    }>> => {
+      // Backend returns direct object, not wrapped in ApiResponse
+      const response = await apiClient.get<{
+        monthlyData: Array<{
+          month: string;
+          value: number;
+          count: number;
+          completed: number;
+          pending: number;
+          cancelled: number;
+        }>;
+        summary: {
+          totalOrders: number;
+          completed: number;
+          pending: number;
+          cancelled: number;
+        };
+      }>('/admin/analytics/orders', { params: year ? { year } : {} });
+      
+      return {
+        data: response.data,
+        success: true,
+        message: 'Orders analytics retrieved successfully'
+      };
+    },
+
+    // Get users analytics
+    getUsers: async (year?: number): Promise<ApiResponse<{
+      monthlyData: Array<{
+        month: string;
+        value: number;
+        count: number;
+        active: number;
+        inactive: number;
+      }>;
+      summary: {
+        totalUsers: number;
+        activeUsers: number;
+        inactiveUsers: number;
+        returnedUsers: number;
+      };
+    }>> => {
+      // Backend returns direct object, not wrapped in ApiResponse
+      const response = await apiClient.get<{
+        monthlyData: Array<{
+          month: string;
+          value: number;
+          count: number;
+          active: number;
+          inactive: number;
+        }>;
+        summary: {
+          totalUsers: number;
+          activeUsers: number;
+          inactiveUsers: number;
+          returnedUsers: number;
+        };
+      }>('/admin/analytics/users', { params: year ? { year } : {} });
+      
+      return {
+        data: response.data,
+        success: true,
+        message: 'Users analytics retrieved successfully'
+      };
+    },
+
+    // Get revenue analytics
+    getRevenue: async (year?: number): Promise<ApiResponse<{
+      monthlyData: Array<{
+        month: string;
+        value: number;
+        revenue: number;
+        profit: number;
+      }>;
+      summary: {
+        revenue: number;
+        profit: number;
+        refunds: number;
+      };
+    }>> => {
+      // Backend returns direct object, not wrapped in ApiResponse
+      const response = await apiClient.get<{
+        monthlyData: Array<{
+          month: string;
+          value: number;
+          revenue: number;
+          profit: number;
+        }>;
+        summary: {
+          revenue: number;
+          profit: number;
+          refunds: number;
+        };
+      }>('/admin/analytics/revenue', { params: year ? { year } : {} });
+      
+      return {
+        data: response.data,
+        success: true,
+        message: 'Revenue analytics retrieved successfully'
+      };
+    },
+
     // Get dashboard analytics
     getDashboard: async (): Promise<ApiResponse<{
       users: {
@@ -245,19 +426,7 @@ export const adminApi = {
       return api.get('/admin/analytics/dashboard');
     },
 
-    // Get revenue analytics
-    getRevenue: async (period: '7d' | '30d' | '90d' | '1y'): Promise<ApiResponse<{
-      period: string;
-      data: Array<{
-        date: string;
-        revenue: number;
-        orders: number;
-      }>;
-    }>> => {
-      return api.get('/admin/analytics/revenue', { params: { period } });
-    },
-
-    // Get user growth analytics
+    // Get user growth analytics (legacy)
     getUserGrowth: async (period: '7d' | '30d' | '90d' | '1y'): Promise<ApiResponse<{
       period: string;
       data: Array<{
@@ -267,6 +436,51 @@ export const adminApi = {
       }>;
     }>> => {
       return api.get('/admin/analytics/user-growth', { params: { period } });
+    },
+
+    // Get platform metrics
+    getMetrics: async (): Promise<ApiResponse<{
+      users: {
+        active: number;
+        inactive: number;
+        returning: number;
+      };
+      businesses: {
+        active: number;
+        inactive: number;
+        returning: number;
+      };
+      laundryOrder: {
+        active: number;
+        successful: number;
+        canceled: number;
+      };
+    }>> => {
+      try {
+        console.log('Fetching metrics from API...');
+        const result = await api.get<{
+          users: {
+            active: number;
+            inactive: number;
+            returning: number;
+          };
+          businesses: {
+            active: number;
+            inactive: number;
+            returning: number;
+          };
+          laundryOrder: {
+            active: number;
+            successful: number;
+            canceled: number;
+          };
+        }>('/admin/metrics');
+        console.log('Metrics API response:', result);
+        return result;
+      } catch (error: unknown) {
+        console.error('Metrics API error:', error);
+        throw error;
+      }
     },
   },
 };

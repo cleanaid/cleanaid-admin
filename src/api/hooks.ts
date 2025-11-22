@@ -41,9 +41,16 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.payments.details(), id] as const,
     stats: () => [...queryKeys.payments.all, 'stats'] as const,
   },
+  payouts: {
+    all: ['payouts'] as const,
+    lists: () => [...queryKeys.payouts.all, 'list'] as const,
+    list: (filters: PaginationParams) => [...queryKeys.payouts.lists(), filters] as const,
+    stats: () => [...queryKeys.payouts.all, 'stats'] as const,
+  },
   analytics: {
     all: ['analytics'] as const,
     dashboard: () => [...queryKeys.analytics.all, 'dashboard'] as const,
+    metrics: () => [...queryKeys.analytics.all, 'metrics'] as const,
     revenue: (period: string) => [...queryKeys.analytics.all, 'revenue', period] as const,
     userGrowth: (period: string) => [...queryKeys.analytics.all, 'userGrowth', period] as const,
   },
@@ -71,6 +78,16 @@ export const useUserStats = (options?: UseQueryOptions) => {
   return useQuery({
     queryKey: queryKeys.users.stats(),
     queryFn: () => adminApi.users.getStats(),
+    ...options,
+  });
+};
+
+export const useUserMetrics = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.users.stats(), 'metrics'],
+    queryFn: () => adminApi.users.getMetrics(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     ...options,
   });
 };
@@ -149,6 +166,16 @@ export const useBusinessStats = (options?: UseQueryOptions) => {
   return useQuery({
     queryKey: queryKeys.businesses.stats(),
     queryFn: () => adminApi.businesses.getStats(),
+    ...options,
+  });
+};
+
+export const useBusinessMetrics = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.businesses.stats(), 'metrics'],
+    queryFn: () => adminApi.businesses.getMetrics(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     ...options,
   });
 };
@@ -286,6 +313,30 @@ export const useUpdatePaymentStatus = (options?: UseMutationOptions<unknown, Err
 };
 
 // Analytics Hooks
+export const useOrdersAnalytics = (year?: number, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'orders', year || new Date().getFullYear()],
+    queryFn: () => adminApi.analytics.getOrders(year),
+    ...options,
+  });
+};
+
+export const useUsersAnalytics = (year?: number, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'users', year || new Date().getFullYear()],
+    queryFn: () => adminApi.analytics.getUsers(year),
+    ...options,
+  });
+};
+
+export const useRevenueAnalytics = (year?: number, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'revenue', year || new Date().getFullYear()],
+    queryFn: () => adminApi.analytics.getRevenue(year),
+    ...options,
+  });
+};
+
 export const useDashboardAnalytics = (options?: UseQueryOptions) => {
   return useQuery({
     queryKey: queryKeys.analytics.dashboard(),
@@ -294,18 +345,37 @@ export const useDashboardAnalytics = (options?: UseQueryOptions) => {
   });
 };
 
-export const useRevenueAnalytics = (period: '7d' | '30d' | '90d' | '1y', options?: UseQueryOptions) => {
-  return useQuery({
-    queryKey: queryKeys.analytics.revenue(period),
-    queryFn: () => adminApi.analytics.getRevenue(period),
-    ...options,
-  });
-};
-
 export const useUserGrowthAnalytics = (period: '7d' | '30d' | '90d' | '1y', options?: UseQueryOptions) => {
   return useQuery({
     queryKey: queryKeys.analytics.userGrowth(period),
     queryFn: () => adminApi.analytics.getUserGrowth(period),
+    ...options,
+  });
+};
+
+export const useAdminMetrics = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.analytics.metrics(),
+    queryFn: () => adminApi.analytics.getMetrics(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    ...options,
+  });
+};
+
+// Payouts Hooks
+export const usePayouts = (filters?: PaginationParams, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.payouts.list(filters || {}),
+    queryFn: () => adminApi.payouts.getAll(filters),
+    ...options,
+  });
+};
+
+export const usePayoutStats = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.payouts.stats(),
+    queryFn: () => adminApi.payouts.getStats(),
     ...options,
   });
 };

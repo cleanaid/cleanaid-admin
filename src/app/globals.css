@@ -3,7 +3,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: #F5F6FA;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -63,9 +63,12 @@
     border-color: hsl(var(--border));
   }
   body {
-    background-color: hsl(var(--background));
+    background-color: #F5F6FA;
     color: hsl(var(--foreground));
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+  html {
+    background-color: #F5F6FA;
   }
   
   /* Ensure background colors work */

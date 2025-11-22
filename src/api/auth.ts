@@ -1,5 +1,16 @@
 import { apiClient } from './api-client';
 
+interface ApiError {
+  code?: string;
+  message?: string;
+  response?: {
+    status: number;
+    data?: {
+      message?: string;
+    };
+  };
+}
+
 export interface LoginCredentials {
   emailAddress: string;
   password: string;
@@ -66,9 +77,33 @@ export async function authenticateAdmin(credentials: LoginCredentials): Promise<
     }
 
     return null;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Admin authentication error:', error);
-    return null;
+    
+    const apiError = error as ApiError;
+    
+    // Handle connection refused error - API server not running
+    if (apiError?.code === 'ECONNREFUSED' || apiError?.message?.includes('ECONNREFUSED')) {
+      console.error('API server is not running. Please start the backend API server.');
+      throw new Error('API server is not available. Please check if the backend server is running.');
+    }
+    
+    // Handle network errors
+    if (apiError?.message?.includes('Network Error') || !apiError?.response) {
+      throw new Error('Network error. Please check your internet connection and API server status.');
+    }
+    
+    // Handle authentication errors
+    if (apiError?.response?.status === 401) {
+      throw new Error('Invalid credentials. Please check your email and password.');
+    }
+    
+    // Handle other API errors
+    if (apiError?.response?.status && apiError.response.status >= 400) {
+      throw new Error(`Authentication failed: ${apiError?.response?.data?.message || 'Unknown error'}`);
+    }
+    
+    throw new Error('Authentication failed. Please try again.');
   }
 }
 

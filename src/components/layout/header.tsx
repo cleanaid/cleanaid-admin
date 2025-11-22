@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 lg:px-6 w-full">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-4 lg:px-6 w-full">
       {/* Search */}
       <div className="flex-1 ml-16 lg:ml-0">
         <div className="relative max-w-sm">
