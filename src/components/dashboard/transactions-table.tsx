@@ -36,6 +36,8 @@ export interface TransactionsTableProps {
   onSearch?: (query: string) => void
   onFilterChange?: (filter: string) => void
   className?: string
+  currentPage?: number
+  limit?: number
 }
 
 export function TransactionsTable({
@@ -45,6 +47,8 @@ export function TransactionsTable({
   onSearch,
   onFilterChange,
   className,
+  currentPage = 1,
+  limit = 10,
 }: TransactionsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedLocation, setSelectedLocation] = useState("Lagos")
@@ -213,9 +217,11 @@ export function TransactionsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredTransactions.map((transaction, index) => (
+              filteredTransactions.map((transaction, index) => {
+                const serialNumber = (currentPage - 1) * limit + index + 1
+                return (
                 <TableRow key={transaction.id}>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium">{serialNumber}</TableCell>
                   <TableCell className="font-medium">{transaction.transactionId}</TableCell>
                   <TableCell>{transaction.description}</TableCell>
                   <TableCell>
@@ -237,7 +243,8 @@ export function TransactionsTable({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>

@@ -39,6 +39,8 @@ export interface BusinessesTableProps {
   onSearch?: (query: string) => void
   onFilterChange?: (filter: string) => void
   className?: string
+  currentPage?: number
+  limit?: number
 }
 
 export function BusinessesTable({
@@ -48,6 +50,8 @@ export function BusinessesTable({
   onSearch,
   onFilterChange,
   className,
+  currentPage = 1,
+  limit = 10,
 }: BusinessesTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [locationFilter, setLocationFilter] = useState("")
@@ -193,9 +197,11 @@ export function BusinessesTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBusinesses.map((business, index) => (
+              filteredBusinesses.map((business, index) => {
+                const serialNumber = (currentPage - 1) * limit + index + 1
+                return (
                 <TableRow key={business.id || index}>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium">{serialNumber}</TableCell>
                   <TableCell>{business.businessNo || business.id || "N/A"}</TableCell>
                   <TableCell className="font-medium">{business.businessName}</TableCell>
                   <TableCell>{business.ownerName}</TableCell>
@@ -226,7 +232,8 @@ export function BusinessesTable({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>

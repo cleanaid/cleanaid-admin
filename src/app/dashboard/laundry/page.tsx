@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { ShoppingCart, CheckCircle, XCircle } from "lucide-react"
+import { ShoppingCart, CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { UserStatCard, LaundryActivitiesTable, type LaundryActivity } from "@/components/dashboard"
 import { useOrders, useOrderStats } from "@/api/hooks"
+import { Button } from "@/components/ui/button"
 import type { ApiResponse } from "@/api/api-client"
 
 // Backend order response structure
@@ -67,14 +68,16 @@ const getTodayKey = () => {
 export default function LaundryPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const limit = 10
 
   // Fetch order statistics
   const { data: statsResponse, isLoading: statsLoading } = useOrderStats()
   
-  // Fetch orders list - using the same endpoint as dashboard
+  // Fetch orders list with pagination
   const { data: ordersResponse, isLoading: ordersLoading } = useOrders({
-    page: 1,
-    limit: 100,
+    page: currentPage,
+    limit: limit,
   })
 
   const isLoading = statsLoading || ordersLoading
@@ -115,12 +118,35 @@ export default function LaundryPage() {
     }
   }, [statsResponse])
 
+  // Extract pagination info from API response
+  const { orders, totalPages, totalOrders } = useMemo(() => {
+    if (!ordersResponse) {
+      return { orders: [], totalPages: 0, totalOrders: 0 }
+    }
+
+    const ordersData = ordersResponse as ApiResponse<BackendOrder[]>
+    const ordersList = ordersData.data || []
+    const pagination = ordersData.pagination as {
+      totalOrders?: number
+      currentPage?: number
+      totalPages?: number
+      pageSize?: number
+      hasNextPage?: boolean
+      hasPrevPage?: boolean
+    } | undefined
+
+    return {
+      orders: Array.isArray(ordersList) ? ordersList : [],
+      totalPages: pagination?.totalPages || 0,
+      totalOrders: pagination?.totalOrders || 0,
+    }
+  }, [ordersResponse])
+
   // Transform orders data for the Laundry Activities table
   const tableActivities: LaundryActivity[] = useMemo(() => {
-    const ordersData = ordersResponse as ApiResponse<BackendOrder[]> | undefined
-    if (!ordersData || !ordersData.data || !Array.isArray(ordersData.data)) return []
+    if (!orders || orders.length === 0) return []
 
-    return ordersData.data
+    return orders
       .filter((order: BackendOrder) => {
         if (!searchQuery) return true
         const query = searchQuery.toLowerCase()
@@ -205,7 +231,24 @@ export default function LaundryPage() {
           status: status,
         }
       })
-  }, [ordersResponse, searchQuery])
+  }, [orders, searchQuery])
+
+  // Pagination handlers
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   // Handle view activity
   const handleViewActivity = (activityId: string) => {
@@ -276,6 +319,67 @@ export default function LaundryPage() {
           console.log("Filter changed:", filter)
         }}
       />
+
+      {/* Pagination Controls */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+          <div className="text-sm text-gray-700">
+            Showing {(currentPage - 1) * limit + 1} to {Math.min(currentPage * limit, totalOrders)} of {totalOrders} orders
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1 || isLoading}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    disabled={isLoading}
+                    className="min-w-[40px]"
+                  >
+                    {pageNum}
+                  </Button>
+                )
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages || isLoading}
+              className="flex items-center gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

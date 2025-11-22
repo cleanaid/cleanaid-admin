@@ -282,6 +282,124 @@ export const adminApi = {
 
   // Analytics and Reports
   analytics: {
+    // Get orders analytics
+    getOrders: async (year?: number): Promise<ApiResponse<{
+      monthlyData: Array<{
+        month: string;
+        value: number;
+        count: number;
+        completed: number;
+        pending: number;
+        cancelled: number;
+      }>;
+      summary: {
+        totalOrders: number;
+        completed: number;
+        pending: number;
+        cancelled: number;
+      };
+    }>> => {
+      // Backend returns direct object, not wrapped in ApiResponse
+      const response = await apiClient.get<{
+        monthlyData: Array<{
+          month: string;
+          value: number;
+          count: number;
+          completed: number;
+          pending: number;
+          cancelled: number;
+        }>;
+        summary: {
+          totalOrders: number;
+          completed: number;
+          pending: number;
+          cancelled: number;
+        };
+      }>('/admin/analytics/orders', { params: year ? { year } : {} });
+      
+      return {
+        data: response.data,
+        success: true,
+        message: 'Orders analytics retrieved successfully'
+      };
+    },
+
+    // Get users analytics
+    getUsers: async (year?: number): Promise<ApiResponse<{
+      monthlyData: Array<{
+        month: string;
+        value: number;
+        count: number;
+        active: number;
+        inactive: number;
+      }>;
+      summary: {
+        totalUsers: number;
+        activeUsers: number;
+        inactiveUsers: number;
+        returnedUsers: number;
+      };
+    }>> => {
+      // Backend returns direct object, not wrapped in ApiResponse
+      const response = await apiClient.get<{
+        monthlyData: Array<{
+          month: string;
+          value: number;
+          count: number;
+          active: number;
+          inactive: number;
+        }>;
+        summary: {
+          totalUsers: number;
+          activeUsers: number;
+          inactiveUsers: number;
+          returnedUsers: number;
+        };
+      }>('/admin/analytics/users', { params: year ? { year } : {} });
+      
+      return {
+        data: response.data,
+        success: true,
+        message: 'Users analytics retrieved successfully'
+      };
+    },
+
+    // Get revenue analytics
+    getRevenue: async (year?: number): Promise<ApiResponse<{
+      monthlyData: Array<{
+        month: string;
+        value: number;
+        revenue: number;
+        profit: number;
+      }>;
+      summary: {
+        revenue: number;
+        profit: number;
+        refunds: number;
+      };
+    }>> => {
+      // Backend returns direct object, not wrapped in ApiResponse
+      const response = await apiClient.get<{
+        monthlyData: Array<{
+          month: string;
+          value: number;
+          revenue: number;
+          profit: number;
+        }>;
+        summary: {
+          revenue: number;
+          profit: number;
+          refunds: number;
+        };
+      }>('/admin/analytics/revenue', { params: year ? { year } : {} });
+      
+      return {
+        data: response.data,
+        success: true,
+        message: 'Revenue analytics retrieved successfully'
+      };
+    },
+
     // Get dashboard analytics
     getDashboard: async (): Promise<ApiResponse<{
       users: {
@@ -308,19 +426,7 @@ export const adminApi = {
       return api.get('/admin/analytics/dashboard');
     },
 
-    // Get revenue analytics
-    getRevenue: async (period: '7d' | '30d' | '90d' | '1y'): Promise<ApiResponse<{
-      period: string;
-      data: Array<{
-        date: string;
-        revenue: number;
-        orders: number;
-      }>;
-    }>> => {
-      return api.get('/admin/analytics/revenue', { params: { period } });
-    },
-
-    // Get user growth analytics
+    // Get user growth analytics (legacy)
     getUserGrowth: async (period: '7d' | '30d' | '90d' | '1y'): Promise<ApiResponse<{
       period: string;
       data: Array<{

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Users, Building2, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
+import { Users, Building2, TrendingUp, ArrowDownLeft, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react"
 import { TransactionsTable, type Transaction } from "@/components/dashboard"
 import { PaymentStatCard } from "@/components/dashboard/payment-stat-card"
 import { usePayments, usePaymentStats } from "@/api/hooks"
@@ -18,16 +18,25 @@ interface BackendTransaction {
   createdAt: string
 }
 
+interface TransactionsResponse {
+  transactions: BackendTransaction[]
+  totalTransactions: number
+  page: number
+  totalPages: number
+}
+
 export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const limit = 10
 
   // Fetch transaction statistics
   const { data: statsResponse, isLoading: statsLoading } = usePaymentStats()
   
-  // Fetch transactions list
+  // Fetch transactions list with pagination
   const { data: transactionsResponse, isLoading: transactionsLoading } = usePayments({
-    page: 1,
-    limit: 100,
+    page: currentPage,
+    limit: limit,
   })
 
   const isLoading = statsLoading || transactionsLoading
@@ -68,13 +77,38 @@ export default function PaymentsPage() {
     }
   }, [statsResponse])
 
+  // Extract pagination info and transactions from API response
+  const { transactions, totalPages, totalTransactions } = useMemo(() => {
+    if (!transactionsResponse) {
+      return { transactions: [], totalPages: 0, totalTransactions: 0 }
+    }
+
+    // Handle ApiResponse wrapper
+    const responseData = (transactionsResponse as ApiResponse<TransactionsResponse>).data || transactionsResponse as TransactionsResponse
+    
+    // Check if responseData has transactions property
+    if (responseData && 'transactions' in responseData) {
+      return {
+        transactions: responseData.transactions || [],
+        totalPages: responseData.totalPages || 0,
+        totalTransactions: responseData.totalTransactions || 0,
+      }
+    }
+
+    // Fallback: check if it's an array directly
+    if (Array.isArray(responseData)) {
+      return {
+        transactions: responseData,
+        totalPages: 1,
+        totalTransactions: responseData.length,
+      }
+    }
+
+    return { transactions: [], totalPages: 0, totalTransactions: 0 }
+  }, [transactionsResponse])
+
   // Transform transactions data for the table
   const tableTransactions: Transaction[] = useMemo(() => {
-    const transactionsData = transactionsResponse as ApiResponse<{ transactions: BackendTransaction[] }> | undefined
-    if (!transactionsData || !transactionsData.data || !('transactions' in transactionsData.data)) return []
-
-    const transactions = transactionsData.data.transactions || []
-    
     return transactions
       .filter((transaction: BackendTransaction) => {
         if (!searchQuery) return true
@@ -92,7 +126,24 @@ export default function PaymentsPage() {
         type: transaction.type,
         amount: transaction.amount || 0,
       }))
-  }, [transactionsResponse, searchQuery])
+  }, [transactions, searchQuery])
+
+  // Pagination handlers
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   // Handle view transaction
   const handleViewTransaction = (transactionId: string) => {
@@ -253,7 +304,70 @@ export default function PaymentsPage() {
         onFilterChange={(filter) => {
           console.log("Filter changed:", filter)
         }}
+        currentPage={currentPage}
+        limit={limit}
       />
+
+      {/* Pagination Controls */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+          <div className="text-sm text-gray-700">
+            Showing {(currentPage - 1) * limit + 1} to {Math.min(currentPage * limit, totalTransactions)} of {totalTransactions} transactions
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1 || isLoading}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    disabled={isLoading}
+                    className="min-w-[40px]"
+                  >
+                    {pageNum}
+                  </Button>
+                )
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages || isLoading}
+              className="flex items-center gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

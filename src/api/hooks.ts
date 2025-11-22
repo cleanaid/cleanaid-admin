@@ -313,18 +313,34 @@ export const useUpdatePaymentStatus = (options?: UseMutationOptions<unknown, Err
 };
 
 // Analytics Hooks
-export const useDashboardAnalytics = (options?: UseQueryOptions) => {
+export const useOrdersAnalytics = (year?: number, options?: UseQueryOptions) => {
   return useQuery({
-    queryKey: queryKeys.analytics.dashboard(),
-    queryFn: () => adminApi.analytics.getDashboard(),
+    queryKey: [...queryKeys.analytics.all, 'orders', year || new Date().getFullYear()],
+    queryFn: () => adminApi.analytics.getOrders(year),
     ...options,
   });
 };
 
-export const useRevenueAnalytics = (period: '7d' | '30d' | '90d' | '1y', options?: UseQueryOptions) => {
+export const useUsersAnalytics = (year?: number, options?: UseQueryOptions) => {
   return useQuery({
-    queryKey: queryKeys.analytics.revenue(period),
-    queryFn: () => adminApi.analytics.getRevenue(period),
+    queryKey: [...queryKeys.analytics.all, 'users', year || new Date().getFullYear()],
+    queryFn: () => adminApi.analytics.getUsers(year),
+    ...options,
+  });
+};
+
+export const useRevenueAnalytics = (year?: number, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.analytics.all, 'revenue', year || new Date().getFullYear()],
+    queryFn: () => adminApi.analytics.getRevenue(year),
+    ...options,
+  });
+};
+
+export const useDashboardAnalytics = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.analytics.dashboard(),
+    queryFn: () => adminApi.analytics.getDashboard(),
     ...options,
   });
 };

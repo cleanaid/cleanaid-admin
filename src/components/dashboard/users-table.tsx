@@ -37,6 +37,8 @@ export interface UsersTableProps {
   onSearch?: (query: string) => void
   onFilterChange?: (filter: string) => void
   className?: string
+  currentPage?: number
+  limit?: number
 }
 
 export function UsersTable({
@@ -46,6 +48,8 @@ export function UsersTable({
   onSearch,
   onFilterChange,
   className,
+  currentPage = 1,
+  limit = 10,
 }: UsersTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [locationFilter, setLocationFilter] = useState("")
@@ -210,9 +214,11 @@ export function UsersTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredUsers.map((user, index) => (
+              filteredUsers.map((user, index) => {
+                const serialNumber = (currentPage - 1) * limit + index + 1
+                return (
                 <TableRow key={user.id || index}>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium">{serialNumber}</TableCell>
                   <TableCell>{user.userNo || user.id || "N/A"}</TableCell>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.ordersCount}</TableCell>
@@ -231,7 +237,8 @@ export function UsersTable({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>

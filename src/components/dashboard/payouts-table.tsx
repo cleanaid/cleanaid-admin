@@ -38,6 +38,8 @@ export interface PayoutsTableProps {
   onSearch?: (query: string) => void
   onFilterChange?: (filter: string) => void
   className?: string
+  currentPage?: number
+  limit?: number
 }
 
 export function PayoutsTable({
@@ -47,6 +49,8 @@ export function PayoutsTable({
   onSearch,
   onFilterChange,
   className,
+  currentPage = 1,
+  limit = 10,
 }: PayoutsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedLocation, setSelectedLocation] = useState("Lagos")
@@ -204,9 +208,11 @@ export function PayoutsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPayouts.map((payout, index) => (
+              filteredPayouts.map((payout, index) => {
+                const serialNumber = (currentPage - 1) * limit + index + 1
+                return (
                 <TableRow key={payout.id}>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium">{serialNumber}</TableCell>
                   <TableCell className="font-medium">{payout.businessId}</TableCell>
                   <TableCell className="font-medium">{payout.businessName}</TableCell>
                   <TableCell>{payout.ordersCount}</TableCell>
@@ -230,7 +236,8 @@ export function PayoutsTable({
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>
