@@ -64,9 +64,9 @@ export async function authenticateAdmin(credentials: LoginCredentials): Promise<
       password: credentials.password
     });
 
-    if (response.data.token && response.data.user) {
-      const { token, user } = response.data;
-      
+    const { token, user, message } = response.data;
+
+    if (token && user) {
       return {
         id: user.userId,
         email: user.emailAddress,
@@ -76,7 +76,7 @@ export async function authenticateAdmin(credentials: LoginCredentials): Promise<
       };
     }
 
-    return null;
+    throw new Error(message || 'Failed to create account. Please try again.');
   } catch (error: unknown) {
     console.error('Admin authentication error:', error);
     
@@ -166,9 +166,33 @@ export async function signupAdmin(credentials: SignupCredentials): Promise<Admin
     }
 
     return null;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Admin signup error:', error);
-    return null;
+
+    const apiError = error as ApiError;
+
+    if (apiError?.code === 'ECONNREFUSED' || apiError?.message?.includes('ECONNREFUSED')) {
+      console.error('API server is not running. Please start the backend API server.');
+      throw new Error('API server is not available. Please check if the backend server is running.');
+    }
+
+    if (apiError?.message?.includes('Network Error') || !apiError?.response) {
+      throw new Error('Network error. Please check your internet connection and API server status.');
+    }
+
+    if (apiError?.response?.status === 409) {
+      throw new Error(apiError.response.data?.message || 'An account with that email or phone number already exists.');
+    }
+
+    if (apiError?.response?.status === 400) {
+      throw new Error(apiError.response.data?.message || 'Invalid signup details. Please review your information and try again.');
+    }
+
+    if (apiError?.response?.status && apiError.response.status >= 400) {
+      throw new Error(`Signup failed: ${apiError.response.data?.message || 'Unknown error'}`);
+    }
+
+    throw new Error('Failed to create account. Please try again.');
   }
 }
 

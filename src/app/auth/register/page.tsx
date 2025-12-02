@@ -77,8 +77,11 @@ export default function RegisterPage() {
       } else {
         setError("Failed to create account. Please try again.")
       }
-    } catch {
-      setError("An error occurred. Please try again.")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "An unexpected error occurred. Please try again."
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
