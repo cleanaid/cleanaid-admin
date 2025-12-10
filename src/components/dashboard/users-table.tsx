@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Search, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 
 export interface User {
@@ -48,7 +49,7 @@ export function UsersTable({
   onSearch,
   onFilterChange,
   className,
-  currentPage = 1,
+  currentPage: externalCurrentPage,
   limit = 10,
 }: UsersTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -56,6 +57,12 @@ export function UsersTable({
   const [yearFilter, setYearFilter] = useState("")
   const [monthFilter, setMonthFilter] = useState("")
   const [dayFilter, setDayFilter] = useState("")
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1)
+  
+  // Use external page if provided, otherwise use internal state
+  const currentPage = externalCurrentPage || internalCurrentPage
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setCurrentPage = externalCurrentPage ? () => {} : setInternalCurrentPage
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
@@ -93,15 +100,37 @@ export function UsersTable({
   }
 
   // Filter users based on search query
-  const filteredUsers = users.filter((user) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      user.name?.toLowerCase().includes(query) ||
-      user.userNo?.toLowerCase().includes(query) ||
-      user.id?.toLowerCase().includes(query)
-    )
-  })
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        user.name?.toLowerCase().includes(query) ||
+        user.userNo?.toLowerCase().includes(query) ||
+        user.id?.toLowerCase().includes(query)
+      )
+    })
+  }, [users, searchQuery])
+
+  // Calculate pagination
+  const totalItems = filteredUsers.length
+  const totalPages = Math.ceil(totalItems / limit)
+  const startIndex = (currentPage - 1) * limit
+  const endIndex = startIndex + limit
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(1)
+    }
+  }, [searchQuery, locationFilter, yearFilter, monthFilter, dayFilter, externalCurrentPage])
+
+  const handlePageChange = (page: number) => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(page)
+    }
+  }
 
   return (
     <div
@@ -207,17 +236,21 @@ export function UsersTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.length === 0 ? (
+            {paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No users found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredUsers.map((user, index) => {
-                const serialNumber = (currentPage - 1) * limit + index + 1
+              paginatedUsers.map((user, index) => {
+                const serialNumber = startIndex + index + 1
                 return (
-                <TableRow key={user.id || index}>
+                <TableRow 
+                  key={user.id || index}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => user.id && onEditUser?.(user.id)}
+                >
                   <TableCell className="font-medium">{serialNumber}</TableCell>
                   <TableCell>{user.userNo || user.id || "N/A"}</TableCell>
                   <TableCell className="font-medium">{user.name}</TableCell>
@@ -226,7 +259,7 @@ export function UsersTable({
                     {formatAmount(user.spend)}
                   </TableCell>
                   <TableCell>{formatDate(user.lastSeen)}</TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -243,6 +276,17 @@ export function UsersTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && !externalCurrentPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={limit}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   )
 }

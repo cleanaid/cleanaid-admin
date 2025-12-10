@@ -92,6 +92,15 @@ export const useUserMetrics = (options?: UseQueryOptions) => {
   });
 };
 
+export const useUserRewardHistory = (userId: string, params?: { page?: number; limit?: number }, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.users.detail(userId), 'reward-history', params],
+    queryFn: () => adminApi.users.getRewardHistory(userId, params),
+    enabled: !!userId,
+    ...options,
+  });
+};
+
 export const useCreateUser = (options?: UseMutationOptions<unknown, Error, Partial<User>>) => {
   const queryClient = useQueryClient();
   
@@ -246,6 +255,15 @@ export const useOrder = (id: string, options?: UseQueryOptions) => {
     queryKey: queryKeys.orders.detail(id),
     queryFn: () => adminApi.orders.getById(id),
     enabled: !!id,
+    ...options,
+  });
+};
+
+export const useUserOrders = (userId: string, params?: { page?: number; limit?: number }, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: [...queryKeys.orders.all, 'user', userId, params],
+    queryFn: () => adminApi.orders.getByUserId(userId, params),
+    enabled: !!userId,
     ...options,
   });
 };

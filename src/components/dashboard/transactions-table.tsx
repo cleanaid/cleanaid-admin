@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Search, Eye } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 
 export interface Transaction {
@@ -47,7 +48,7 @@ export function TransactionsTable({
   onSearch,
   onFilterChange,
   className,
-  currentPage = 1,
+  currentPage: externalCurrentPage,
   limit = 10,
 }: TransactionsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -55,6 +56,12 @@ export function TransactionsTable({
   const [selectedYear, setSelectedYear] = useState("2025")
   const [selectedMonth, setSelectedMonth] = useState("October")
   const [selectedDay, setSelectedDay] = useState("15th")
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1)
+  
+  // Use external page if provided, otherwise use internal state
+  const currentPage = externalCurrentPage || internalCurrentPage
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setCurrentPage = externalCurrentPage ? () => {} : setInternalCurrentPage
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
@@ -104,15 +111,37 @@ export function TransactionsTable({
   }
 
   // Filter transactions based on search query
-  const filteredTransactions = transactions.filter((transaction) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      transaction.transactionId.toLowerCase().includes(query) ||
-      transaction.description.toLowerCase().includes(query) ||
-      transaction.type.toLowerCase().includes(query)
-    )
-  })
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        transaction.transactionId.toLowerCase().includes(query) ||
+        transaction.description.toLowerCase().includes(query) ||
+        transaction.type.toLowerCase().includes(query)
+      )
+    })
+  }, [transactions, searchQuery])
+
+  // Calculate pagination
+  const totalItems = filteredTransactions.length
+  const totalPages = Math.ceil(totalItems / limit)
+  const startIndex = (currentPage - 1) * limit
+  const endIndex = startIndex + limit
+  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(1)
+    }
+  }, [searchQuery, selectedLocation, selectedYear, selectedMonth, selectedDay, externalCurrentPage])
+
+  const handlePageChange = (page: number) => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(page)
+    }
+  }
 
   return (
     <div
@@ -210,15 +239,15 @@ export function TransactionsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.length === 0 ? (
+            {paginatedTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   No transactions found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredTransactions.map((transaction, index) => {
-                const serialNumber = (currentPage - 1) * limit + index + 1
+              paginatedTransactions.map((transaction, index) => {
+                const serialNumber = startIndex + index + 1
                 return (
                 <TableRow key={transaction.id}>
                   <TableCell className="font-medium">{serialNumber}</TableCell>
@@ -249,6 +278,17 @@ export function TransactionsTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && !externalCurrentPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={limit}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   )
 }

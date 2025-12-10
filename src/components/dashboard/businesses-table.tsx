@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Search, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 
 export interface Business {
@@ -50,7 +51,7 @@ export function BusinessesTable({
   onSearch,
   onFilterChange,
   className,
-  currentPage = 1,
+  currentPage: externalCurrentPage,
   limit = 10,
 }: BusinessesTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -58,6 +59,12 @@ export function BusinessesTable({
   const [yearFilter, setYearFilter] = useState("")
   const [monthFilter, setMonthFilter] = useState("")
   const [dayFilter, setDayFilter] = useState("")
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1)
+  
+  // Use external page if provided, otherwise use internal state
+  const currentPage = externalCurrentPage || internalCurrentPage
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setCurrentPage = externalCurrentPage ? () => {} : setInternalCurrentPage
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
@@ -74,16 +81,38 @@ export function BusinessesTable({
   }
 
   // Filter businesses based on search query
-  const filteredBusinesses = businesses.filter((business) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      business.businessName?.toLowerCase().includes(query) ||
-      business.ownerName?.toLowerCase().includes(query) ||
-      business.businessNo?.toLowerCase().includes(query) ||
-      business.id?.toLowerCase().includes(query)
-    )
-  })
+  const filteredBusinesses = useMemo(() => {
+    return businesses.filter((business) => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        business.businessName?.toLowerCase().includes(query) ||
+        business.ownerName?.toLowerCase().includes(query) ||
+        business.businessNo?.toLowerCase().includes(query) ||
+        business.id?.toLowerCase().includes(query)
+      )
+    })
+  }, [businesses, searchQuery])
+
+  // Calculate pagination
+  const totalItems = filteredBusinesses.length
+  const totalPages = Math.ceil(totalItems / limit)
+  const startIndex = (currentPage - 1) * limit
+  const endIndex = startIndex + limit
+  const paginatedBusinesses = filteredBusinesses.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(1)
+    }
+  }, [searchQuery, locationFilter, yearFilter, monthFilter, dayFilter, externalCurrentPage])
+
+  const handlePageChange = (page: number) => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(page)
+    }
+  }
 
   return (
     <div
@@ -190,15 +219,15 @@ export function BusinessesTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredBusinesses.length === 0 ? (
+            {paginatedBusinesses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                   No businesses found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBusinesses.map((business, index) => {
-                const serialNumber = (currentPage - 1) * limit + index + 1
+              paginatedBusinesses.map((business, index) => {
+                const serialNumber = startIndex + index + 1
                 return (
                 <TableRow key={business.id || index}>
                   <TableCell className="font-medium">{serialNumber}</TableCell>
@@ -238,6 +267,17 @@ export function BusinessesTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && !externalCurrentPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={limit}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   )
 }

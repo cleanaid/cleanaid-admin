@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 
 export interface Payout {
@@ -49,7 +50,7 @@ export function PayoutsTable({
   onSearch,
   onFilterChange,
   className,
-  currentPage = 1,
+  currentPage: externalCurrentPage,
   limit = 10,
 }: PayoutsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -57,6 +58,12 @@ export function PayoutsTable({
   const [selectedYear, setSelectedYear] = useState("2025")
   const [selectedMonth, setSelectedMonth] = useState("October")
   const [selectedDay, setSelectedDay] = useState("15th")
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1)
+  
+  // Use external page if provided, otherwise use internal state
+  const currentPage = externalCurrentPage || internalCurrentPage
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setCurrentPage = externalCurrentPage ? () => {} : setInternalCurrentPage
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
@@ -81,15 +88,37 @@ export function PayoutsTable({
   }
 
   // Filter payouts based on search query
-  const filteredPayouts = payouts.filter((payout) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      payout.id.toLowerCase().includes(query) ||
-      payout.businessId.toLowerCase().includes(query) ||
-      payout.businessName.toLowerCase().includes(query)
-    )
-  })
+  const filteredPayouts = useMemo(() => {
+    return payouts.filter((payout) => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        payout.id.toLowerCase().includes(query) ||
+        payout.businessId.toLowerCase().includes(query) ||
+        payout.businessName.toLowerCase().includes(query)
+      )
+    })
+  }, [payouts, searchQuery])
+
+  // Calculate pagination
+  const totalItems = filteredPayouts.length
+  const totalPages = Math.ceil(totalItems / limit)
+  const startIndex = (currentPage - 1) * limit
+  const endIndex = startIndex + limit
+  const paginatedPayouts = filteredPayouts.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(1)
+    }
+  }, [searchQuery, selectedLocation, selectedYear, selectedMonth, selectedDay, externalCurrentPage])
+
+  const handlePageChange = (page: number) => {
+    if (!externalCurrentPage) {
+      setInternalCurrentPage(page)
+    }
+  }
 
   const getTimerBorderColor = (color: "green" | "yellow" | "black") => {
     switch (color) {
@@ -201,15 +230,15 @@ export function PayoutsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPayouts.length === 0 ? (
+            {paginatedPayouts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No payouts found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPayouts.map((payout, index) => {
-                const serialNumber = (currentPage - 1) * limit + index + 1
+              paginatedPayouts.map((payout, index) => {
+                const serialNumber = startIndex + index + 1
                 return (
                 <TableRow key={payout.id}>
                   <TableCell className="font-medium">{serialNumber}</TableCell>
@@ -242,6 +271,17 @@ export function PayoutsTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && !externalCurrentPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={limit}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   )
 }
