@@ -2,691 +2,309 @@
 
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { 
-  Shield, 
-  Settings as SettingsIcon, 
-  Users, 
-  Key, 
-  Bell, 
-  Globe, 
-  Database,
-  Save,
-  RefreshCw
-} from "lucide-react"
-
-// Mock data - will be replaced with real API calls
-const mockAccessControlSettings = {
-  userRegistration: {
-    enabled: true,
-    requireEmailVerification: true,
-    requirePhoneVerification: false,
-    autoApprove: false,
-  },
-  businessRegistration: {
-    enabled: true,
-    requireDocumentVerification: true,
-    requireManualApproval: true,
-    autoApprove: false,
-  },
-  adminPermissions: {
-    canManageUsers: true,
-    canManageBusinesses: true,
-    canManagePayments: true,
-    canViewAnalytics: true,
-    canManageSettings: true,
-  },
-  securitySettings: {
-    sessionTimeout: 30, // minutes
-    requireTwoFactor: false,
-    passwordMinLength: 8,
-    passwordRequireSpecialChars: true,
-  },
-}
-
-const mockApplicationSettings = {
-  general: {
-    appName: "Cleanaid Admin",
-    appVersion: "1.0.0",
-    maintenanceMode: false,
-    debugMode: false,
-  },
-  notifications: {
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true,
-    adminAlerts: true,
-  },
-  integrations: {
-    paymentGateway: "stripe",
-    emailService: "sendgrid",
-    smsService: "twilio",
-    analyticsService: "google_analytics",
-  },
-  features: {
-    darkMode: true,
-    multiLanguage: false,
-    advancedAnalytics: true,
-    apiAccess: true,
-  },
-}
+import { Eye, Users, Wrench, Crown, Loader2 } from "lucide-react"
+import { useAdmins, useAdminStats } from "@/api/hooks"
 
 export default function SettingsPage() {
-  const [accessControlSettings, setAccessControlSettings] = useState(mockAccessControlSettings)
-  const [applicationSettings, setApplicationSettings] = useState(mockApplicationSettings)
-  const [isSaving, setIsSaving] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [currentPage, setCurrentPage] = useState(1)
+  const limit = 10
 
-  const handleSaveAccessControl = async () => {
-    setIsSaving(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log("Saving access control settings:", accessControlSettings)
-    setIsSaving(false)
+  // Fetch admin data from API
+  const { data: adminsResponse, isLoading: adminsLoading } = useAdmins({
+    page: currentPage,
+    limit,
+    search: searchQuery,
+  }) as {
+    data?: {
+      data: Array<{
+        _id: string;
+        name: string;
+        email: string;
+        accessLevel: string;
+        status: string;
+      }>;
+    };
+    isLoading: boolean;
   }
 
-  const handleSaveApplicationSettings = async () => {
-    setIsSaving(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log("Saving application settings:", applicationSettings)
-    setIsSaving(false)
+  // Fetch admin stats from API
+  const { data: statsResponse, isLoading: statsLoading } = useAdminStats() as {
+    data?: {
+      data: {
+        management: number;
+        marketingEditors: number;
+        itPMs: number;
+        total: number;
+      };
+    };
+    isLoading: boolean;
+  }
+
+  const admins = adminsResponse?.data || []
+  const stats = statsResponse?.data || { management: 0, marketingEditors: 0, itPMs: 0, total: 0 }
+
+  const handleAddAdmin = () => {
+    // TODO: Implement add admin functionality
+    console.log("Add new admin")
+  }
+
+  const handleViewAdmin = (adminId: string) => {
+    // TODO: Implement view admin details
+    console.log("View admin:", adminId)
+  }
+
+  const handleChangePassword = () => {
+    // TODO: Implement change password functionality
+    console.log("Change password")
+  }
+
+  const handleChangeEmail = () => {
+    // TODO: Implement change email functionality
+    console.log("Change email")
+  }
+
+  const handleChangePhone = () => {
+    // TODO: Implement change phone functionality
+    console.log("Change phone")
+  }
+
+  const getStatusClass = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "active":
+        return "bg-[#4CAF50] text-white"
+      case "deleted":
+        return "bg-[#EF5350] text-white"
+      case "inactive":
+        return "bg-gray-200 text-gray-700"
+      default:
+        return "bg-gray-200 text-gray-700"
+    }
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage system settings, access control, and application configuration.
-        </p>
-      </div>
-
-      <Tabs defaultValue="access-control" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="access-control" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
+    <div className="space-y-6 p-6">
+      <Tabs defaultValue="access-control" className="space-y-6">
+        <TabsList className="bg-transparent border-b rounded-none w-full justify-start h-auto p-0">
+          <TabsTrigger 
+            value="access-control" 
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-black rounded-none pb-3 font-semibold text-base"
+          >
             Access Control
           </TabsTrigger>
-          <TabsTrigger value="application" className="flex items-center gap-2">
-            <SettingsIcon className="h-4 w-4" />
-            Application
+          <TabsTrigger 
+            value="credentials" 
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-black rounded-none pb-3 font-semibold text-base"
+          >
+            Credentials
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="access-control" className="space-y-4">
-          {/* User Registration Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-4 w-4" />
-                <span>User Registration</span>
-              </CardTitle>
-              <CardDescription>
-                Configure user registration and verification settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <TabsContent value="access-control" className="space-y-6 mt-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable User Registration</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow new users to register on the platform
-                  </p>
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">Management</p>
+                  {statsLoading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  ) : (
+                    <p className="text-3xl font-bold">{stats.management.toString().padStart(2, '0')}</p>
+                  )}
                 </div>
-                <Switch
-                  checked={accessControlSettings.userRegistration.enabled}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    userRegistration: {
-                      ...accessControlSettings.userRegistration,
-                      enabled: checked
-                    }
-                  })}
-                />
+                <div className="bg-blue-100 rounded-full p-4">
+                  <Users className="h-8 w-8 text-blue-600" />
+                </div>
               </div>
+            </div>
 
-              <Separator />
-
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Require Email Verification</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Users must verify their email before accessing the platform
-                  </p>
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">Marketing/Editors</p>
+                  {statsLoading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  ) : (
+                    <p className="text-3xl font-bold">{stats.marketingEditors.toString().padStart(2, '0')}</p>
+                  )}
                 </div>
-                <Switch
-                  checked={accessControlSettings.userRegistration.requireEmailVerification}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    userRegistration: {
-                      ...accessControlSettings.userRegistration,
-                      requireEmailVerification: checked
-                    }
-                  })}
-                />
+                <div className="bg-green-100 rounded-full p-4">
+                  <Wrench className="h-8 w-8 text-green-600" />
+                </div>
               </div>
+            </div>
 
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Require Phone Verification</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Users must verify their phone number during registration
-                  </p>
+                <div>
+                  <p className="text-gray-600 text-sm mb-2">IT/PMs</p>
+                  {statsLoading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  ) : (
+                    <p className="text-3xl font-bold">{stats.itPMs.toString().padStart(2, '0')}</p>
+                  )}
                 </div>
-                <Switch
-                  checked={accessControlSettings.userRegistration.requirePhoneVerification}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    userRegistration: {
-                      ...accessControlSettings.userRegistration,
-                      requirePhoneVerification: checked
-                    }
-                  })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Auto-approve Users</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically approve new user registrations
-                  </p>
+                <div className="bg-red-100 rounded-full p-4">
+                  <Crown className="h-8 w-8 text-red-600" />
                 </div>
-                <Switch
-                  checked={accessControlSettings.userRegistration.autoApprove}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    userRegistration: {
-                      ...accessControlSettings.userRegistration,
-                      autoApprove: checked
-                    }
-                  })}
-                />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Business Registration Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="h-4 w-4" />
-                <span>Business Registration</span>
-              </CardTitle>
-              <CardDescription>
-                Configure business registration and verification settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable Business Registration</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow new businesses to register on the platform
-                  </p>
-                </div>
-                <Switch
-                  checked={accessControlSettings.businessRegistration.enabled}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    businessRegistration: {
-                      ...accessControlSettings.businessRegistration,
-                      enabled: checked
-                    }
-                  })}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Require Document Verification</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Businesses must submit verification documents
-                  </p>
-                </div>
-                <Switch
-                  checked={accessControlSettings.businessRegistration.requireDocumentVerification}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    businessRegistration: {
-                      ...accessControlSettings.businessRegistration,
-                      requireDocumentVerification: checked
-                    }
-                  })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Require Manual Approval</Label>
-                  <p className="text-sm text-muted-foreground">
-                    All business registrations require manual admin approval
-                  </p>
-                </div>
-                <Switch
-                  checked={accessControlSettings.businessRegistration.requireManualApproval}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    businessRegistration: {
-                      ...accessControlSettings.businessRegistration,
-                      requireManualApproval: checked
-                    }
-                  })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Security Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Key className="h-4 w-4" />
-                <span>Security Settings</span>
-              </CardTitle>
-              <CardDescription>
-                Configure security and authentication settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
+          {/* Admins Table */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">List of Admins</h2>
+              <div className="flex items-center gap-4">
+                <div className="relative">
                   <Input
-                    id="session-timeout"
-                    type="number"
-                    value={accessControlSettings.securitySettings.sessionTimeout}
-                    onChange={(e) => setAccessControlSettings({
-                      ...accessControlSettings,
-                      securitySettings: {
-                        ...accessControlSettings.securitySettings,
-                        sessionTimeout: parseInt(e.target.value) || 30
-                      }
-                    })}
+                    placeholder="Search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-80 rounded-full border-gray-300"
                   />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password-length">Minimum Password Length</Label>
-                  <Input
-                    id="password-length"
-                    type="number"
-                    value={accessControlSettings.securitySettings.passwordMinLength}
-                    onChange={(e) => setAccessControlSettings({
-                      ...accessControlSettings,
-                      securitySettings: {
-                        ...accessControlSettings.securitySettings,
-                        passwordMinLength: parseInt(e.target.value) || 8
-                      }
-                    })}
-                  />
-                </div>
+                <Button
+                  onClick={handleAddAdmin}
+                  className="bg-[#4CAF50] hover:bg-[#45a049] text-white rounded-full px-6"
+                >
+                  <span className="mr-2 text-xl">+</span>
+                  Add
+                </Button>
               </div>
+            </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Require Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Force all admin users to use 2FA
-                  </p>
-                </div>
-                <Switch
-                  checked={accessControlSettings.securitySettings.requireTwoFactor}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    securitySettings: {
-                      ...accessControlSettings.securitySettings,
-                      requireTwoFactor: checked
-                    }
-                  })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Require Special Characters in Passwords</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Passwords must contain special characters
-                  </p>
-                </div>
-                <Switch
-                  checked={accessControlSettings.securitySettings.passwordRequireSpecialChars}
-                  onCheckedChange={(checked) => setAccessControlSettings({
-                    ...accessControlSettings,
-                    securitySettings: {
-                      ...accessControlSettings.securitySettings,
-                      passwordRequireSpecialChars: checked
-                    }
-                  })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSaveAccessControl} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Access Control Settings
-                </>
-              )}
-            </Button>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-y border-gray-200">
+                    <th className="text-left py-4 px-4 font-semibold text-gray-700">S/N</th>
+                    <th className="text-left py-4 px-4 font-semibold text-gray-700">Name</th>
+                    <th className="text-left py-4 px-4 font-semibold text-gray-700">Access Level</th>
+                    <th className="text-left py-4 px-4 font-semibold text-gray-700">Email</th>
+                    <th className="text-left py-4 px-4 font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-4 px-4 font-semibold text-gray-700"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminsLoading ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto" />
+                        <p className="mt-2 text-gray-500">Loading admins...</p>
+                      </td>
+                    </tr>
+                  ) : admins.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-gray-500">
+                        No admins found
+                      </td>
+                    </tr>
+                  ) : (
+                    admins.map((admin, index) => (
+                      <tr key={admin._id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-4 text-gray-700">{(currentPage - 1) * limit + index + 1}</td>
+                        <td className="py-4 px-4 text-gray-700">{admin.name}</td>
+                        <td className="py-4 px-4 text-gray-700">{admin.accessLevel}</td>
+                        <td className="py-4 px-4 text-gray-700">{admin.email || 'N/A'}</td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-block px-4 py-1 rounded-full text-sm font-medium capitalize ${getStatusClass(
+                              admin.status
+                            )}`}
+                          >
+                            {admin.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <button
+                            onClick={() => handleViewAdmin(admin._id)}
+                            className="text-gray-700 hover:text-gray-900"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="application" className="space-y-4">
-          {/* General Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Globe className="h-4 w-4" />
-                <span>General Settings</span>
-              </CardTitle>
-              <CardDescription>
-                Configure general application settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="app-name">Application Name</Label>
-                  <Input
-                    id="app-name"
-                    value={applicationSettings.general.appName}
-                    onChange={(e) => setApplicationSettings({
-                      ...applicationSettings,
-                      general: {
-                        ...applicationSettings.general,
-                        appName: e.target.value
-                      }
-                    })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="app-version">Application Version</Label>
-                  <Input
-                    id="app-version"
-                    value={applicationSettings.general.appVersion}
-                    onChange={(e) => setApplicationSettings({
-                      ...applicationSettings,
-                      general: {
-                        ...applicationSettings.general,
-                        appVersion: e.target.value
-                      }
-                    })}
-                  />
-                </div>
+        <TabsContent value="credentials" className="space-y-4 mt-6">
+          <h2 className="text-2xl font-bold mb-6">Credentials</h2>
+
+          {/* Last Password Change */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Last Password Change</h3>
+                <p className="text-gray-500 bg-gray-100 px-4 py-2 rounded-lg inline-block">
+                  20th Sept. 2025
+                </p>
               </div>
+              <Button
+                onClick={handleChangePassword}
+                className="bg-black hover:bg-gray-800 text-white rounded-full px-6"
+              >
+                Change password
+              </Button>
+            </div>
+          </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Maintenance Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Put the application in maintenance mode
-                  </p>
-                </div>
-                <Switch
-                  checked={applicationSettings.general.maintenanceMode}
-                  onCheckedChange={(checked) => setApplicationSettings({
-                    ...applicationSettings,
-                    general: {
-                      ...applicationSettings.general,
-                      maintenanceMode: checked
-                    }
-                  })}
-                />
+          {/* Last Email Change */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Last Email Change</h3>
+                <p className="text-gray-500 bg-gray-100 px-4 py-2 rounded-lg inline-block">
+                  20th Sept. 2025
+                </p>
               </div>
+              <Button
+                onClick={handleChangeEmail}
+                className="bg-black hover:bg-gray-800 text-white rounded-full px-6"
+              >
+                Change Email
+              </Button>
+            </div>
+          </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Debug Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable debug logging and development features
-                  </p>
-                </div>
-                <Switch
-                  checked={applicationSettings.general.debugMode}
-                  onCheckedChange={(checked) => setApplicationSettings({
-                    ...applicationSettings,
-                    general: {
-                      ...applicationSettings.general,
-                      debugMode: checked
-                    }
-                  })}
-                />
+          {/* Last Phone Change */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Last Phone Change</h3>
+                <p className="text-gray-500 bg-gray-100 px-4 py-2 rounded-lg inline-block">
+                  20th Sept. 2025
+                </p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Notification Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Bell className="h-4 w-4" />
-                <span>Notification Settings</span>
-              </CardTitle>
-              <CardDescription>
-                Configure notification preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send email notifications to users
-                  </p>
-                </div>
-                <Switch
-                  checked={applicationSettings.notifications.emailNotifications}
-                  onCheckedChange={(checked) => setApplicationSettings({
-                    ...applicationSettings,
-                    notifications: {
-                      ...applicationSettings.notifications,
-                      emailNotifications: checked
-                    }
-                  })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>SMS Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send SMS notifications to users
-                  </p>
-                </div>
-                <Switch
-                  checked={applicationSettings.notifications.smsNotifications}
-                  onCheckedChange={(checked) => setApplicationSettings({
-                    ...applicationSettings,
-                    notifications: {
-                      ...applicationSettings.notifications,
-                      smsNotifications: checked
-                    }
-                  })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Push Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send push notifications to mobile apps
-                  </p>
-                </div>
-                <Switch
-                  checked={applicationSettings.notifications.pushNotifications}
-                  onCheckedChange={(checked) => setApplicationSettings({
-                    ...applicationSettings,
-                    notifications: {
-                      ...applicationSettings.notifications,
-                      pushNotifications: checked
-                    }
-                  })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Admin Alerts</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send alerts to admin users for important events
-                  </p>
-                </div>
-                <Switch
-                  checked={applicationSettings.notifications.adminAlerts}
-                  onCheckedChange={(checked) => setApplicationSettings({
-                    ...applicationSettings,
-                    notifications: {
-                      ...applicationSettings.notifications,
-                      adminAlerts: checked
-                    }
-                  })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Integration Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Database className="h-4 w-4" />
-                <span>Integration Settings</span>
-              </CardTitle>
-              <CardDescription>
-                Configure third-party service integrations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Payment Gateway</Label>
-                  <Select
-                    value={applicationSettings.integrations.paymentGateway}
-                    onValueChange={(value) => setApplicationSettings({
-                      ...applicationSettings,
-                      integrations: {
-                        ...applicationSettings.integrations,
-                        paymentGateway: value
-                      }
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="stripe">Stripe</SelectItem>
-                      <SelectItem value="paypal">PayPal</SelectItem>
-                      <SelectItem value="square">Square</SelectItem>
-                      <SelectItem value="razorpay">Razorpay</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Email Service</Label>
-                  <Select
-                    value={applicationSettings.integrations.emailService}
-                    onValueChange={(value) => setApplicationSettings({
-                      ...applicationSettings,
-                      integrations: {
-                        ...applicationSettings.integrations,
-                        emailService: value
-                      }
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sendgrid">SendGrid</SelectItem>
-                      <SelectItem value="mailgun">Mailgun</SelectItem>
-                      <SelectItem value="ses">AWS SES</SelectItem>
-                      <SelectItem value="postmark">Postmark</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>SMS Service</Label>
-                  <Select
-                    value={applicationSettings.integrations.smsService}
-                    onValueChange={(value) => setApplicationSettings({
-                      ...applicationSettings,
-                      integrations: {
-                        ...applicationSettings.integrations,
-                        smsService: value
-                      }
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="twilio">Twilio</SelectItem>
-                      <SelectItem value="aws_sns">AWS SNS</SelectItem>
-                      <SelectItem value="messagebird">MessageBird</SelectItem>
-                      <SelectItem value="nexmo">Nexmo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Analytics Service</Label>
-                  <Select
-                    value={applicationSettings.integrations.analyticsService}
-                    onValueChange={(value) => setApplicationSettings({
-                      ...applicationSettings,
-                      integrations: {
-                        ...applicationSettings.integrations,
-                        analyticsService: value
-                      }
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="google_analytics">Google Analytics</SelectItem>
-                      <SelectItem value="mixpanel">Mixpanel</SelectItem>
-                      <SelectItem value="amplitude">Amplitude</SelectItem>
-                      <SelectItem value="hotjar">Hotjar</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSaveApplicationSettings} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Application Settings
-                </>
-              )}
-            </Button>
+              <Button
+                onClick={handleChangePhone}
+                className="bg-black hover:bg-gray-800 text-white rounded-full px-6"
+              >
+                Change Phone
+              </Button>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
