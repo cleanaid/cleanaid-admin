@@ -3,6 +3,7 @@ import { User } from '@/types/user';
 import { Business } from '@/types/business';
 import { Order } from '@/types/order';
 import { authenticateAdmin, getAdminProfile, logoutAdmin, signupAdmin } from './auth';
+import { Broadcast, CreateBroadcastPayload, BroadcastFilters } from '@/types/broadcast';
 
 // Query parameters for pagination and filtering
 export interface PaginationParams {
@@ -536,6 +537,30 @@ export const adminApi = {
         console.error('Metrics API error:', error);
         throw error;
       }
+    },
+  },
+
+  // Broadcast Management
+  broadcast: {
+    // Create a new broadcast
+    create: async (payload: CreateBroadcastPayload): Promise<ApiResponse<Broadcast>> => {
+      return api.post<Broadcast>('/admin/broadcast', payload);
+    },
+
+    // Get paginated list of broadcasts
+    getAll: async (params?: BroadcastFilters): Promise<ApiResponse<Broadcast[]>> => {
+      const response = await apiClient.get<{ broadcasts: Broadcast[]; pagination: Record<string, unknown> }>('/admin/broadcast', { params });
+      return {
+        data: response.data.broadcasts,
+        pagination: response.data.pagination,
+        success: true,
+        message: 'Broadcasts retrieved successfully'
+      };
+    },
+
+    // Get broadcast by ID
+    getById: async (id: string): Promise<ApiResponse<Broadcast>> => {
+      return api.get<Broadcast>(`/admin/broadcast/${id}`);
     },
   },
 };

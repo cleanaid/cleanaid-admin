@@ -3,6 +3,7 @@ import { adminApi, type UserFilters, type BusinessFilters, type OrderFilters, ty
 import { type ApiResponse } from './api-client';
 import { User } from '@/types/user';
 import { Business } from '@/types/business';
+import { Broadcast, BroadcastFilters, CreateBroadcastPayload } from '@/types/broadcast';
 
 // Re-export types for convenience
 export type { UserFilters, BusinessFilters, OrderFilters, PaginationParams, ApiResponse };
@@ -53,6 +54,13 @@ export const queryKeys = {
     metrics: () => [...queryKeys.analytics.all, 'metrics'] as const,
     revenue: (period: string) => [...queryKeys.analytics.all, 'revenue', period] as const,
     userGrowth: (period: string) => [...queryKeys.analytics.all, 'userGrowth', period] as const,
+  },
+  broadcasts: {
+    all: ['broadcasts'] as const,
+    lists: () => [...queryKeys.broadcasts.all, 'list'] as const,
+    list: (filters: BroadcastFilters) => [...queryKeys.broadcasts.lists(), filters] as const,
+    details: () => [...queryKeys.broadcasts.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.broadcasts.details(), id] as const,
   },
 };
 
@@ -388,5 +396,44 @@ export const usePayoutStats = (options?: UseQueryOptions) => {
     queryKey: queryKeys.payouts.stats(),
     queryFn: () => adminApi.payouts.getStats(),
     ...options,
+  });
+};
+
+// Broadcast Hooks
+export const useBroadcasts = (filters?: BroadcastFilters, options?: UseQueryOptions<ApiResponse<Broadcast[]>>) => {
+  return useQuery<ApiResponse<Broadcast[]>>({
+    queryKey: queryKeys.broadcasts.list(filters || {}),
+    queryFn: () => adminApi.broadcast.getAll(filters),
+    ...options,
+  });
+};
+
+export const useBroadcast = (id: string, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.broadcasts.detail(id),
+    queryFn: () => adminApi.broadcast.getById(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCreateBroadcast = (options?: UseMutationOptions<ApiResponse<Broadcast>, Error, CreateBroadcastPayload>) => {
+  const queryClient = useQueryClient();
+  const userOnSuccess = options?.onSuccess;
+  
+  return useMutation({
+    mutationFn: (payload: CreateBroadcastPayload) => adminApi.broadcast.create(payload),
+    onSuccess: (data, variables, context) => {
+      // Invalidate all broadcast queries to refetch the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.broadcasts.all });
+      // Call the user's onSuccess if provided (after invalidation)
+      if (userOnSuccess) {
+        userOnSuccess(data, variables, context);
+      }
+    },
+    // Spread other options but preserve our onSuccess
+    ...(options ? Object.fromEntries(
+      Object.entries(options).filter(([key]) => key !== 'onSuccess')
+    ) : {}),
   });
 };

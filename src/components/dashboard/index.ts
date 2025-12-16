@@ -7,4 +7,5 @@ export { LaundryActivitiesTable, type LaundryActivitiesTableProps, type LaundryA
 export { PayoutsTable, type PayoutsTableProps, type Payout } from "./payouts-table"
 export { TransactionsTable, type TransactionsTableProps, type Transaction } from "./transactions-table"
 export { PaymentStatCard, type PaymentStatCardProps } from "./payment-stat-card"
+export { BroadcastRecordsTable, type BroadcastRecordsTableProps } from "./broadcast-records-table"
 
