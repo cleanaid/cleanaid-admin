@@ -3,6 +3,7 @@ import { User } from '@/types/user';
 import { Business } from '@/types/business';
 import { Order } from '@/types/order';
 import { authenticateAdmin, getAdminProfile, logoutAdmin, signupAdmin } from './auth';
+import { Broadcast, CreateBroadcastPayload, BroadcastFilters } from '@/types/broadcast';
 
 // Query parameters for pagination and filtering
 export interface PaginationParams {
@@ -77,7 +78,13 @@ export const adminApi = {
 
     // Get user by ID
     getById: async (id: string): Promise<ApiResponse<User>> => {
-      return api.get<User>(`/admin/users/${id}`);
+      // Backend returns user data directly, not wrapped in ApiResponse
+      const response = await apiClient.get<User>(`/admin/users/${id}`);
+      return {
+        data: response.data,
+        success: true,
+        message: 'User retrieved successfully'
+      };
     },
 
     // Create new user
@@ -118,6 +125,42 @@ export const adminApi = {
       returningUsers: number;
     }>> => {
       return api.get('/admin/users/metrics');
+    },
+
+    // Get user reward history
+    getRewardHistory: async (userId: string, params?: { page?: number; limit?: number }): Promise<ApiResponse<{
+      _id: string;
+      orderId: string;
+      clothesCount: number;
+      rewardType: string;
+      totalAmount: number;
+      amountSaved: number;
+      startDate: string | Date;
+      endDate: string | Date;
+      status: string;
+      createdAt: string | Date;
+    }[]>> => {
+      // Backend returns { pagination, rewards }
+      interface RewardHistoryItem {
+        _id: string;
+        orderId: string;
+        clothesCount: number;
+        rewardType: string;
+        totalAmount: number;
+        amountSaved: number;
+        startDate: string | Date;
+        endDate: string | Date;
+        status: string;
+        createdAt: string | Date;
+      }
+      const response = await apiClient.get<{ rewards: RewardHistoryItem[]; pagination: Record<string, unknown> }>(`/admin/users/${userId}/reward-history`, { params });
+      // Transform to ApiResponse format
+      return {
+        data: response.data.rewards,
+        pagination: response.data.pagination as ApiResponse<RewardHistoryItem[]>['pagination'],
+        success: true,
+        message: 'User reward history retrieved successfully'
+      };
     },
   },
 
@@ -222,7 +265,20 @@ export const adminApi = {
 
     // Get order by ID
     getById: async (id: string): Promise<ApiResponse<Order>> => {
-      return api.get<Order>(`/admin/laundry-activities/${id}`);
+      return api.get<Order>(`/admin/orders/${id}`);
+    },
+
+    // Get orders by user ID
+    getByUserId: async (userId: string, params?: { page?: number; limit?: number }): Promise<ApiResponse<Order[]>> => {
+      // Backend returns { pagination, orders } directly
+      const response = await apiClient.get<{ orders: Order[]; pagination: Record<string, unknown> }>(`/admin/orders/user/${userId}`, { params });
+      // Transform to ApiResponse format
+      return {
+        data: response.data.orders,
+        pagination: response.data.pagination as ApiResponse<Order[]>['pagination'],
+        success: true,
+        message: 'User orders retrieved successfully'
+      };
     },
 
     // Update order status
@@ -481,6 +537,30 @@ export const adminApi = {
         console.error('Metrics API error:', error);
         throw error;
       }
+    },
+  },
+
+  // Broadcast Management
+  broadcast: {
+    // Create a new broadcast
+    create: async (payload: CreateBroadcastPayload): Promise<ApiResponse<Broadcast>> => {
+      return api.post<Broadcast>('/admin/broadcast', payload);
+    },
+
+    // Get paginated list of broadcasts
+    getAll: async (params?: BroadcastFilters): Promise<ApiResponse<Broadcast[]>> => {
+      const response = await apiClient.get<{ broadcasts: Broadcast[]; pagination: Record<string, unknown> }>('/admin/broadcast', { params });
+      return {
+        data: response.data.broadcasts,
+        pagination: response.data.pagination,
+        success: true,
+        message: 'Broadcasts retrieved successfully'
+      };
+    },
+
+    // Get broadcast by ID
+    getById: async (id: string): Promise<ApiResponse<Broadcast>> => {
+      return api.get<Broadcast>(`/admin/broadcast/${id}`);
     },
   },
 };
