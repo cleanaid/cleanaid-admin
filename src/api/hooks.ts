@@ -62,6 +62,12 @@ export const queryKeys = {
     details: () => [...queryKeys.broadcasts.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.broadcasts.details(), id] as const,
   },
+  admins: {
+    all: ['admins'] as const,
+    lists: () => [...queryKeys.admins.all, 'list'] as const,
+    list: (filters: { page?: number; limit?: number; search?: string; accessLevel?: string; status?: string }) => [...queryKeys.admins.lists(), filters] as const,
+    stats: () => [...queryKeys.admins.all, 'stats'] as const,
+  },
 };
 
 // Users Hooks
@@ -435,5 +441,23 @@ export const useCreateBroadcast = (options?: UseMutationOptions<ApiResponse<Broa
     ...(options ? Object.fromEntries(
       Object.entries(options).filter(([key]) => key !== 'onSuccess')
     ) : {}),
+  });
+};
+
+// Admin Management Hooks
+export const useAdmins = (filters?: { page?: number; limit?: number; search?: string; accessLevel?: string; status?: string }, options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.admins.list(filters || {}),
+    queryFn: () => adminApi.admins.getAll(filters),
+    ...options,
+  });
+};
+
+export const useAdminStats = (options?: UseQueryOptions) => {
+  return useQuery({
+    queryKey: queryKeys.admins.stats(),
+    queryFn: () => adminApi.admins.getStats(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options,
   });
 };

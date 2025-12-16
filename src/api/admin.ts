@@ -563,6 +563,44 @@ export const adminApi = {
       return api.get<Broadcast>(`/admin/broadcast/${id}`);
     },
   },
+
+  // Admin Management
+  admins: {
+    // Get paginated list of admins
+    getAll: async (params?: { page?: number; limit?: number; search?: string; accessLevel?: string; status?: string }): Promise<ApiResponse<{
+      _id: string;
+      name: string;
+      email: string;
+      accessLevel: string;
+      status: string;
+      lastLogin: Date;
+    }[]>> => {
+      const response = await apiClient.get<{ admins: {
+        _id: string;
+        name: string;
+        email: string;
+        accessLevel: string;
+        status: string;
+        lastLogin: Date;
+      }[]; pagination: Record<string, unknown> }>('/admin/admins', { params });
+      return {
+        data: response.data.admins,
+        pagination: response.data.pagination,
+        success: true,
+        message: 'Admins retrieved successfully'
+      };
+    },
+
+    // Get admin statistics by access level
+    getStats: async (): Promise<ApiResponse<{
+      management: number;
+      marketingEditors: number;
+      itPMs: number;
+      total: number;
+    }>> => {
+      return api.get('/admin/admins/stats');
+    },
+  },
 };
 
 export default adminApi;
